@@ -5,6 +5,7 @@ This repository is organized using a **subsystem-based architecture** to keep co
 ---
 
 ## 📁 Package Structure
+```
 org.firstinspires.ftc.teamcode
 │
 ├── opmodes
@@ -18,7 +19,7 @@ org.firstinspires.ftc.teamcode
 │
 └── util
     └── RobotConstants.java
-
+```
 ---
 
 ## 📌 Folder Breakdown
