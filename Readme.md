@@ -8,16 +8,16 @@ This repository is organized using a **subsystem-based architecture** to keep co
 org.firstinspires.ftc.teamcode
 │
 ├── opmodes
-│ └── AutonomousOpMode.java
+│   └── AutonomousOpMode.java
 │
 ├── subsystems
-│ ├── DriveBase.java
-│ ├── Intake.java
-│ ├── Shooter.java
-│ └── Kicker.java
+│   ├── DriveBase.java
+│   ├── Intake.java
+│   ├── Shooter.java
+│   └── Kicker.java
 │
 └── util
-└── RobotConstants.java
+    └── RobotConstants.java
 
 ---
 
