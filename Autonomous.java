@@ -185,23 +185,23 @@ public class Autonomous extends LinearOpMode {
     private void initDrive(HardwareMap hw) {
 
         // Match these names to the Robot Configuration
-        fl = hw.get(DcMotorEx.class, "frontLeft");
-        fr = hw.get(DcMotorEx.class, "frontRight");
-        bl = hw.get(DcMotorEx.class, "backLeft");
-        br = hw.get(DcMotorEx.class, "backRight");
+        fl = hw.get(DcMotorEx.class, "leftfront");
+        fr = hw.get(DcMotorEx.class, "rightfront");
+        bl = hw.get(DcMotorEx.class, "leftrear");
+        br = hw.get(DcMotorEx.class, "rightrear");
         // Intake motor (no encoder needed)
-        intake = hw.get(DcMotorEx.class, "intake");
+        intake = hw.get(DcMotorEx.class, "frontintake");
         belt = hw.get(DcMotorEx.class, "belt");
-        kicker = hw.get(Servo.class, "kicker");
-        shooterLeft = hw.get(DcMotorEx.class, "shooterLeft");
-        shooterRight = hw.get(DcMotorEx.class, "shooterRight");
+        kicker = hw.get(Servo.class, "ballkicker");
+        shooterLeft = hw.get(DcMotorEx.class, "leftshooter");
+        shooterRight = hw.get(DcMotorEx.class, "rightshooter");
 
 
         // Reverse right side motors so all wheels move forward together
         fr.setDirection(DcMotor.Direction.REVERSE);
         br.setDirection(DcMotor.Direction.REVERSE);
         // Usually one shooter motor must be reversed
-        shooterRight.setDirection(DcMotor.Direction.REVERSE);
+        shooterLeft.setDirection(DcMotor.Direction.REVERSE);
 
         // Brake motors when power is set to zero
         for (DcMotorEx m : new DcMotorEx[]{fl, fr, bl, br}) {
