@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+private ElapsedTime timer = new ElapsedTime();
 
 /*
  * Autonomous OpMode using mecanum wheels with encoders.
@@ -21,14 +22,15 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
  *  - Encoder-based movement
  *  - Motor braking when stopped
  */
-@Autonomous(name = "AutoLatest", group = "Drive")
-public class Auto extends LinearOpMode {
+@Autonomous(name = "AutoTimer", group = "Drive")
+public class AutoTimer extends LinearOpMode {
 
     // Drive motors
     private DcMotorEx fl, fr, bl, br, intake, belt, shooterLeft, shooterRight;
     // Analog servo kicker
     private Servo kicker;
-
+    // Timer for non-blocking delays
+    private ElapsedTime timer = new ElapsedTime();
     // -------------------- CONSTANTS --------------------
 
     // Encoder ticks per motor revolution (GoBILDA 312 RPM)
@@ -62,11 +64,11 @@ public class Auto extends LinearOpMode {
     private static final double TICKS_PER_DEGREE =10.8;
 
     // Kicker servo positions (TUNE ON ROBOT)
-    private static final double KICKER_REST = 0.5;  // ball held
+    private static final double KICKER_REST = 0.5;  // kicker down
     private static final double KICKER_KICK = -1;  // ball pushed
 
-    private double shooterPower = 1.0; // full power
-    private double batteryVoltage = 12.0; // full power
+    private double shooterPower;
+    private double batteryVoltage;
 
     // -------------------- OPMODE --------------------
 
@@ -94,26 +96,26 @@ public class Auto extends LinearOpMode {
             shooterOn(shooterPower);
             // Drive backward 44 inches
             drive(44, DRIVE_SPEED);
-            sleep(100);
+            waitMillis(100);
             // -------- BALL 1 --------
-            kickBall(); sleep(50); //kick ball taking ~1.4 seconds
+            kickBall(); waitMillis(50); //kick ball taking ~1.4 seconds
             //first ball time is about 1.5 seconds
 
             // second ball preparation time is about 1 seconds
-            beltOn(1); sleep(1000);
-            beltOff(); sleep(50);
+            beltOn(1); waitMillis(1000);
+            beltOff(); waitMillis(50);
 
             // -------- BALL 2 --------
-            kickBall(); sleep(50);
+            kickBall(); waitMillis(50);
             // end of second ball total time is about 2.4 seconds
 
 
             //third ball preparation time is about 1 seconds
-            intakeOn(1); beltOn(1); sleep(1000);
-            beltOff(); intakeOff(); sleep(50);
+            intakeOn(1); beltOn(1); waitMillis(1000);
+            beltOff(); intakeOff(); waitMillis(50);
             
             // -------- BALL 3 --------
-            kickBall(); sleep(50);
+            kickBall(); waitMillis(50);
             //third ball total time is about 2.4 seconds
             // Shut down shooter
             shooterOff();
@@ -123,25 +125,25 @@ public class Auto extends LinearOpMode {
             // Strafe right 18 inches
             
             // Drive backward 5 inches
-            drive(5, 0.4); sleep(100);
+            drive(5, 0.4); waitMillis(100);
             
             // Turn 120 degrees clockwise
             turn(-120, 0.45);
             
             strafe(-4.5, 0.5); //it was -5 inches
-            sleep(100);
+            waitMillis(100);
 
             // Start intake before moving
             intakeOn(1.0);  beltOn(0.5);
             // Drive forward to collect the ball
             drive(40, 0.3);
             // Give intake time to fully pull in the ball
-            sleep(250);
+            waitMillis(250);
             // Stop the intake after collecting the ball
             intakeOff(); beltOff();
 
             // Optional: clear last ball
-            shooterOn(-0.5); intakeOn(-0.5); beltOn(-0.8); sleep(250);
+            shooterOn(-0.5); intakeOn(-0.5); beltOn(-0.8); waitMillis(250);
             intakeOff(); beltOff(); shooterOff();
 
             // ----- RETURN TO SHOOTING POSITION -----
@@ -158,28 +160,40 @@ public class Auto extends LinearOpMode {
 
             // ----- SHOOT NEXT 3 BALLS -----
             // -------- BALL 4 --------
-            kickBall(); sleep(150);
+            kickBall(); waitMillis(150);
             //4th ball time is about 1.5 seconds
 
             // fifth ball preparation time is about 1 seconds
-            beltOn(1); sleep(1000);
-            beltOff(); sleep(50);
+            beltOn(1); waitMillis(1000);
+            beltOff(); waitMillis(50);
             // -------- BALL 5 --------
-            kickBall(); sleep(50);
+            kickBall(); waitMillis(50);
             // end of fifth ball total time is about 2.4 seconds
 
             //sixth ball preparation time is about 1 seconds
-            intakeOn(1); beltOn(1); sleep(1000);
-            beltOff(); intakeOff(); sleep(50);
+            intakeOn(1); beltOn(1); waitMillis(1000);
+            beltOff(); intakeOff(); waitMillis(50);
             
             // -------- BALL 6 --------
-            kickBall(); sleep(50);
+            kickBall(); waitMillis(50);
 
             //sixth ball total time is about 2.4 seconds
             // Shut down shooter
             shooterOff();
             strafe(20, 1);
 
+        }
+    }
+
+        // -------------------- TIME HELPER --------------------
+
+    /*
+     * Non-blocking replacement for sleep()
+     */
+    private void waitMillis(long ms) {
+        timer.reset();
+        while (opModeIsActive() && timer.milliseconds() < ms) {
+            idle();
         }
     }
 
@@ -341,6 +355,8 @@ public class Auto extends LinearOpMode {
         // Stop motors and hold position
         stopMotors();
 
+        // Reset encoders so next move starts from zero
+        resetEncoders();
     }
 
     /*
@@ -418,12 +434,12 @@ public class Auto extends LinearOpMode {
     */
     private void kickBall() {
         kicker.setPosition(KICKER_KICK);
-        sleep(600);                 // time to fully kick ball
+        waitMillis(600);                 // time to fully kick ball
         beltOn(-0.8);               // reverse belt to prevent jams 
-        sleep(300);                 // allow servo to return
+        waitMillis(300);                 // allow servo to return
         beltOff();                  // stop belt
         kicker.setPosition(KICKER_REST);
-        sleep(400);                 // allow servo to return
+        waitMillis(400);                 // allow servo to return
     }
 
     // -------------------- POWER LOGIC --------------------
@@ -501,7 +517,7 @@ public class Auto extends LinearOpMode {
             fr.setPower(p);
             bl.setPower(p);
             br.setPower(p);
-            sleep(20); // short step
+            waitMillis(20); // short step
         }
 
         // Ensure motors are fully stopped
