@@ -212,19 +212,18 @@ public class autoblue extends LinearOpMode {
     public double getShooterSpeedFromVoltage() {
         double v = getBatteryVoltage();
 
-        if (v > 14.0) return 0.83;
-        if (v > 13.9) return 0.85;
-        if (v >= 13.5) return 0.865;
-        if (v >= 13.3) return 0.87;
-        if (v >= 13.2) return 0.88;
-        if (v >= 13.1) return 0.89;
-        if (v >= 13.0) return 0.90;
-        if (v >= 12.9) return 0.91;
-        if (v >= 12.7) return 0.92;
-        if (v > 12.5) return 0.94;
-        if (v >= 12.0) return 0.95;
-
-        return 1.0;
+        if (v >= 14.0) return 0.83;
+        else if (v >= 13.9) return 0.85;
+        else if (v >= 13.5) return 0.865;
+        else if (v >= 13.3) return 0.87;
+        else if (v >= 13.2) return 0.88;
+        else if (v >= 13.1) return 0.89;
+        else if (v >= 13.0) return 0.90;
+        else if (v >= 12.9) return 0.91;
+        else if (v >= 12.7) return 0.92;
+        else if (v >= 12.5) return 0.94;
+        else if (v >= 12.0) return 0.95;
+        else return 1.0;
     }
     
     public void encoderDrive(double speed, double leftInches, double rightInches, double timeoutS) {

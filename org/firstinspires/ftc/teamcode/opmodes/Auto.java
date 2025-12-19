@@ -39,12 +39,20 @@ public class Auto extends LinearOpMode {
 
     // Gear ratio (1.0 = direct drive)
     private static final double GEAR_RATIO = 1.0;
-
+    // Correction factor to improve distance accuracy
+    private static final double CORRECTION_VALUE = 0.96;
+    // Default driving speed
+    private static final double DRIVE_SPEED = 0.7;
     // Encoder ticks required to move the robot 1 inch
+    // Adjust based on your robot's performance
+    // Calculate as (ticks per rev * gear ratio) / (wheel circumference)
+    // wheel circumference = pi * diameter
+    // Thus, TICKS_PER_INCH = (TICKS_PER_REV * GEAR_RATIO) / (π * WHEEL_DIAMETER_INCHES)
+    // Then multiply by correction factor
     private static final double TICKS_PER_INCH =
-            (TICKS_PER_REV * GEAR_RATIO) /
-            (Math.PI * WHEEL_DIAMETER_INCHES)*0.96;
-
+            ((TICKS_PER_REV * GEAR_RATIO) /
+            (Math.PI * WHEEL_DIAMETER_INCHES))*CORRECTION_VALUE;
+    
     // Strafing is less efficient due to mecanum rollers
     // This multiplier compensates for sideways slip
     private static final double STRAFE_MULTIPLIER = 1.1;
@@ -53,10 +61,12 @@ public class Auto extends LinearOpMode {
     // This must be tuned for your specific robot
     private static final double TICKS_PER_DEGREE =10.8;
 
-
     // Kicker servo positions (TUNE ON ROBOT)
     private static final double KICKER_REST = 0.5;  // ball held
     private static final double KICKER_KICK = -1;  // ball pushed
+
+    private double shooterPower = 1.0; // full power
+    private double batteryVoltage = 3.5; // full power
 
     // -------------------- OPMODE --------------------
 
@@ -75,40 +85,46 @@ public class Auto extends LinearOpMode {
         if (opModeIsActive()) {
             
             // Get shoot speed
-            double shooterPower = calculateShooterPower();
-            telemetry.addData("shooter power", shooterPower);
-            telemetry.addData("battery level", getBatteryVoltage());
+            shooterPower = calculateShooterPower();
+            batteryVoltage = getBatteryVoltage();
+            telemetry.addData("Sooter Power", shooterPower);
+            telemetry.addData("Battery Level", batteryVoltage);
             telemetry.update();
             // ----- FIRST 3 BALLS -----
             //Spin up shooter ONCE
-            shooterOn(shooterPower+0.3);
+            shooterOn(shooterPower);
             // Drive backward 44 inches
-            drive(44, 0.9);
+            drive(44, DRIVE_SPEED);
             sleep(200);
             // -------- BALL 1 --------
-            kickBall();
+            kickBall(); //kick ball taking ~1.4 seconds
             sleep(50);
+            //first ball time is about 1.5 seconds
 
+            // second ball preparation time is about 1 seconds
             beltOn(1);
             sleep(1000);
             beltOff();
-            sleep(150);
+            sleep(50);
 
             // -------- BALL 2 --------
             kickBall();
-            // sleep(150);
+            sleep(50);
+            // end of second ball total time is about 2.4 seconds
 
+
+            //third ball preparation time is about 1 seconds
             intakeOn(1);
             beltOn(1);
-            sleep(900);
+            sleep(1000);
             beltOff();
             intakeOff();
-            sleep(150);
+            sleep(50);
             
             // -------- BALL 3 --------
             kickBall();
-            // sleep(200);
-
+            sleep(50);
+            //third ball total time is about 2.4 seconds
             // Shut down shooter
             shooterOff();
 
@@ -116,71 +132,79 @@ public class Auto extends LinearOpMode {
             // Move to collect another 3 balls
             // Strafe right 18 inches
             
-            // Drive backward 12 inches
+            // Drive backward 5 inches
             drive(5, 0.4);
+            sleep(100);
             
-            // Turn 130 degrees clockwise
+            // Turn 120 degrees clockwise
             turn(-120, 0.45);
             
-            strafe(-5, 0.5);
+            strafe(-4.5, 0.5); //it was -5 inches
+            sleep(100);
 
             // Start intake before moving
             intakeOn(1.0);
+            beltOn(0.5);
 
             // Drive forward to collect the ball
-            drive(40, 0.4);
+            drive(40, 0.3);
 
             // Give intake time to fully pull in the ball
-            sleep(300);
+            sleep(250);
 
             // Stop the intake after collecting the ball
             intakeOff();
 
             // Optional: clear last ball
-            intakeOn(-0.6);
-            beltOn(-0.5);
-            shooterOn(-0.4);
-            sleep(350);
+            shooterOn(-0.5);
+            intakeOn(-0.5);
+            beltOn(-0.8);
+            sleep(250);
             intakeOff();
             beltOff();
             shooterOff();
 
             // ----- RETURN TO SHOOTING POSITION -----
             shooterPower = calculateShooterPower();
-            telemetry.addData("shooter power", shooterPower);
-            telemetry.addData("battery level", getBatteryVoltage());
+            batteryVoltage = getBatteryVoltage();            
+            telemetry.addData("Shooter Power", shooterPower);
+            telemetry.addData("Battery Level", batteryVoltage);
             telemetry.update();
-            drive(-40, 0.8);  // Adjust distance based on field
-            strafe(5, 0.5); // Strafe back to original lane
+            drive(-40, DRIVE_SPEED);  // Adjust distance based on field
+            strafe(4.5, 0.5); // Strafe back to original lane
             // Spin up shooter
-            shooterOn(shooterPower+0.3);
+            shooterOn(shooterPower);
             turn(120, 0.45);  // Turn back to face goal
-            // drive(12, 0.4);  // Final approach to shooting position
+
             // ----- SHOOT NEXT 3 BALLS -----
             // -------- BALL 4 --------
-            kickBall();
-            sleep(50);
+            kickBall(); //kick ball taking ~1.4 seconds
+            sleep(150);
+            //4th ball time is about 1.5 seconds
 
+            // fifth ball preparation time is about 1 seconds
             beltOn(1);
             sleep(1000);
             beltOff();
-            sleep(150);
+            sleep(50);
 
             // -------- BALL 5 --------
             kickBall();
-            // sleep(150);
+            sleep(50);
+            // end of fifth ball total time is about 2.4 seconds
 
+            //sixth ball preparation time is about 1 seconds
             intakeOn(1);
             beltOn(1);
-            sleep(1200);
+            sleep(1000);
             beltOff();
             intakeOff();
-            sleep(150);
+            sleep(50);
             
             // -------- BALL 6 --------
             kickBall();
-            // sleep(200);
-
+            sleep(50);
+            //sixth ball total time is about 2.4 seconds
             // Shut down shooter
             shooterOff();
             strafe(20, 1);
@@ -416,11 +440,11 @@ public class Auto extends LinearOpMode {
     private void kickBall() {
         kicker.setPosition(KICKER_KICK);
         sleep(600);                 // time to fully kick ball
-        beltOn(-0.5);
+        beltOn(-0.8);               // reverse belt to prevent jams 
         sleep(300);                 // allow servo to return
+        beltOff();                  // stop belt
         kicker.setPosition(KICKER_REST);
-        sleep(300);                 // allow servo to return
-        beltOff();
+        sleep(400);                 // allow servo to return
     }
 
     /*
@@ -449,22 +473,40 @@ public class Auto extends LinearOpMode {
         return voltage;
     }
 
+    // private double calculateShooterPower() {
+    //     double voltage = getBatteryVoltage();   // measured battery
+    //     double minVoltage = 12.0;               // lowest voltage to hit full power
+    //     double maxVoltage = 13.8;               // highest voltage to reduce power
+    //     double minPower = 0.85;                 // shooter power at max voltage
+    //     double maxPower = 1.0;                  // shooter power at min voltage
+
+    //     // Linear mapping: higher voltage → lower power
+    //     double power = maxPower - ((voltage - minVoltage) / (maxVoltage - minVoltage)) * (maxPower - minPower);
+
+    //     // Clamp power between minPower and maxPower
+    //     if (power > maxPower) power = maxPower;
+    //     if (power < minPower) power = minPower;
+
+    //     return power;
+    // }
+
     private double calculateShooterPower() {
-        double voltage = getBatteryVoltage();   // measured battery
-        double minVoltage = 12.0;               // lowest voltage to hit full power
-        double maxVoltage = 13.8;               // highest voltage to reduce power
-        double minPower = 0.85;                 // shooter power at max voltage
-        double maxPower = 1.0;                  // shooter power at min voltage
+        double v = getBatteryVoltage();
 
-        // Linear mapping: higher voltage → lower power
-        double power = maxPower - ((voltage - minVoltage) / (maxVoltage - minVoltage)) * (maxPower - minPower);
-
-        // Clamp power between minPower and maxPower
-        if (power > maxPower) power = maxPower;
-        if (power < minPower) power = minPower;
-
-        return power;
+        if (v >= 14.0) return 0.83;
+        else if (v >= 13.9) return 0.85;
+        else if (v >= 13.5) return 0.865;
+        else if (v >= 13.3) return 0.87;
+        else if (v >= 13.2) return 0.88;
+        else if (v >= 13.1) return 0.89;
+        else if (v >= 13.0) return 0.90;
+        else if (v >= 12.9) return 0.91;
+        else if (v >= 12.7) return 0.92;
+        else if (v >= 12.5) return 0.94;
+        else if (v >= 12.0) return 0.95;
+        else return 1.0;
     }
+
     private void runToPositionWithBrake(double power) {
 
         // Set RUN_TO_POSITION mode
