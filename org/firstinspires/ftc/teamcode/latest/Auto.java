@@ -82,8 +82,8 @@ public class Auto extends LinearOpMode {
         // Wait for the play button to be pressed
         waitForStart();
         // Get shooter speed
-        shooterPower = calculateShooterPower();
         batteryVoltage = getBatteryVoltage();
+        shooterPower = calculateShooterPower(batteryVoltage);
         telemetry.addData("Initial Shooter Power", shooterPower);
         telemetry.addData("Initial Battery Voltage", batteryVoltage);
         telemetry.update();
@@ -145,8 +145,8 @@ public class Auto extends LinearOpMode {
             intakeOff(); beltOff(); shooterOff();
 
             // ----- RETURN TO SHOOTING POSITION -----
-            shooterPower = calculateShooterPower();
-            batteryVoltage = getBatteryVoltage();            
+            batteryVoltage = getBatteryVoltage();
+            shooterPower = calculateShooterPower(batteryVoltage);
             telemetry.addData("Shooter Power", shooterPower);
             telemetry.addData("Battery Level", batteryVoltage);
             telemetry.update();
@@ -455,8 +455,8 @@ public class Auto extends LinearOpMode {
     //     return power;
     // }
 
-    private double calculateShooterPower() {
-        double v = getBatteryVoltage();
+    private double calculateShooterPower(double voltage) {
+        double v = voltage;
 
         if (v >= 14.0) return 0.83;
         else if (v >= 13.9) return 0.85;
