@@ -81,49 +81,39 @@ public class Auto extends LinearOpMode {
 
         // Wait for the play button to be pressed
         waitForStart();
-
+        // Get shooter speed
+        shooterPower = calculateShooterPower();
+        batteryVoltage = getBatteryVoltage();
+        telemetry.addData("Initial Shooter Power", shooterPower);
+        telemetry.addData("Initial Battery Voltage", batteryVoltage);
+        telemetry.update();
+        
         if (opModeIsActive()) {
-            
-            // Get shoot speed
-            shooterPower = calculateShooterPower();
-            batteryVoltage = getBatteryVoltage();
-            telemetry.addData("Sooter Power", shooterPower);
-            telemetry.addData("Battery Level", batteryVoltage);
-            telemetry.update();
             // ----- FIRST 3 BALLS -----
             //Spin up shooter ONCE
             shooterOn(shooterPower);
             // Drive backward 44 inches
             drive(44, DRIVE_SPEED);
-            sleep(200);
+            sleep(100);
             // -------- BALL 1 --------
-            kickBall(); //kick ball taking ~1.4 seconds
-            sleep(50);
+            kickBall(); sleep(50); //kick ball taking ~1.4 seconds
             //first ball time is about 1.5 seconds
 
             // second ball preparation time is about 1 seconds
-            beltOn(1);
-            sleep(1000);
-            beltOff();
-            sleep(50);
+            beltOn(1); sleep(1000);
+            beltOff(); sleep(50);
 
             // -------- BALL 2 --------
-            kickBall();
-            sleep(50);
+            kickBall(); sleep(50);
             // end of second ball total time is about 2.4 seconds
 
 
             //third ball preparation time is about 1 seconds
-            intakeOn(1);
-            beltOn(1);
-            sleep(1000);
-            beltOff();
-            intakeOff();
-            sleep(50);
+            intakeOn(1); beltOn(1); sleep(1000);
+            beltOff(); intakeOff(); sleep(50);
             
             // -------- BALL 3 --------
-            kickBall();
-            sleep(50);
+            kickBall(); sleep(50);
             //third ball total time is about 2.4 seconds
             // Shut down shooter
             shooterOff();
@@ -133,8 +123,7 @@ public class Auto extends LinearOpMode {
             // Strafe right 18 inches
             
             // Drive backward 5 inches
-            drive(5, 0.4);
-            sleep(100);
+            drive(5, 0.4); sleep(100);
             
             // Turn 120 degrees clockwise
             turn(-120, 0.45);
@@ -143,26 +132,17 @@ public class Auto extends LinearOpMode {
             sleep(100);
 
             // Start intake before moving
-            intakeOn(1.0);
-            beltOn(0.5);
-
+            intakeOn(1.0);  beltOn(0.5);
             // Drive forward to collect the ball
             drive(40, 0.3);
-
             // Give intake time to fully pull in the ball
             sleep(250);
-
             // Stop the intake after collecting the ball
-            intakeOff();
+            intakeOff(); beltOff();
 
             // Optional: clear last ball
-            shooterOn(-0.5);
-            intakeOn(-0.5);
-            beltOn(-0.8);
-            sleep(250);
-            intakeOff();
-            beltOff();
-            shooterOff();
+            shooterOn(-0.5); intakeOn(-0.5); beltOn(-0.8); sleep(250);
+            intakeOff(); beltOff(); shooterOff();
 
             // ----- RETURN TO SHOOTING POSITION -----
             shooterPower = calculateShooterPower();
@@ -178,32 +158,23 @@ public class Auto extends LinearOpMode {
 
             // ----- SHOOT NEXT 3 BALLS -----
             // -------- BALL 4 --------
-            kickBall(); //kick ball taking ~1.4 seconds
-            sleep(150);
+            kickBall(); sleep(150);
             //4th ball time is about 1.5 seconds
 
             // fifth ball preparation time is about 1 seconds
-            beltOn(1);
-            sleep(1000);
-            beltOff();
-            sleep(50);
-
+            beltOn(1); sleep(1000);
+            beltOff(); sleep(50);
             // -------- BALL 5 --------
-            kickBall();
-            sleep(50);
+            kickBall(); sleep(50);
             // end of fifth ball total time is about 2.4 seconds
 
             //sixth ball preparation time is about 1 seconds
-            intakeOn(1);
-            beltOn(1);
-            sleep(1000);
-            beltOff();
-            intakeOff();
-            sleep(50);
+            intakeOn(1); beltOn(1); sleep(1000);
+            beltOff(); intakeOff(); sleep(50);
             
             // -------- BALL 6 --------
-            kickBall();
-            sleep(50);
+            kickBall(); sleep(50);
+
             //sixth ball total time is about 2.4 seconds
             // Shut down shooter
             shooterOff();
@@ -255,14 +226,7 @@ public class Auto extends LinearOpMode {
 
         // Reset encoder values to zero
         resetEncoders();
-        
-        // Intake does not need encoders
-        intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        // Belt usually does not need encoders
-        belt.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        // Shooter does not need RUN_TO_POSITION
-        shooterLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        shooterRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+  
     }
 
     /*
@@ -365,7 +329,8 @@ public class Auto extends LinearOpMode {
         // Wait until all motors finish moving
         while (opModeIsActive() &&
               (fl.isBusy() || fr.isBusy() || bl.isBusy() || br.isBusy())) {
-
+            telemetry.addData("Shooter Power", shooterPower);
+            telemetry.addData("Battery Voltage", batteryVoltage);
             telemetry.addData("FL Encoder", fl.getCurrentPosition());
             telemetry.addData("FR Encoder", fr.getCurrentPosition());
             telemetry.addData("BL Encoder", bl.getCurrentPosition());
@@ -434,20 +399,6 @@ public class Auto extends LinearOpMode {
     }
 
     /*
-    * Moves the servo forward to kick one ball,
-    * then returns it to the rest position.
-    */
-    private void kickBall() {
-        kicker.setPosition(KICKER_KICK);
-        sleep(600);                 // time to fully kick ball
-        beltOn(-0.8);               // reverse belt to prevent jams 
-        sleep(300);                 // allow servo to return
-        beltOff();                  // stop belt
-        kicker.setPosition(KICKER_REST);
-        sleep(400);                 // allow servo to return
-    }
-
-    /*
     * Spins up both shooter motors
     */
     private void shooterOn(double power) {
@@ -463,7 +414,21 @@ public class Auto extends LinearOpMode {
         shooterRight.setPower(0);
     }
 
+    /*
+    * Moves the servo forward to kick one ball,
+    * then returns it to the rest position.
+    */
+    private void kickBall() {
+        kicker.setPosition(KICKER_KICK);
+        sleep(600);                 // time to fully kick ball
+        beltOn(-0.8);               // reverse belt to prevent jams 
+        sleep(300);                 // allow servo to return
+        beltOff();                  // stop belt
+        kicker.setPosition(KICKER_REST);
+        sleep(400);                 // allow servo to return
+    }
 
+    // -------------------- POWER LOGIC --------------------
     private double getBatteryVoltage() {
         double voltage = 0;
         for (VoltageSensor sensor : hardwareMap.voltageSensor) {
@@ -520,6 +485,8 @@ public class Auto extends LinearOpMode {
             (fl.isBusy() || fr.isBusy() || bl.isBusy() || br.isBusy())) {
 
             // Optional: telemetry for debugging
+            telemetry.addData("Shooter Power", shooterPower);
+            telemetry.addData("Battery Voltage", batteryVoltage);            
             telemetry.addData("FL", fl.getCurrentPosition());
             telemetry.addData("FR", fr.getCurrentPosition());
             telemetry.addData("BL", bl.getCurrentPosition());
