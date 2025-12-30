@@ -22,13 +22,13 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *  - Encoder-based movement
  *  - Motor braking when stopped
  */
-@Autonomous(name = "AutoStateMachineRED", group = "Drive")
-public class AutoStateMachine extends LinearOpMode {
+@Autonomous(name = "QualifierBlue", group = "Drive")
+public class AutoQualifierBlue extends LinearOpMode {
 
     // Drive motors
     private DcMotorEx fl, fr, bl, br, intake, belt, shooterLeft, shooterRight;
     // Analog servo kicker
-    private Servo kicker;
+    private Servo kicker, topKicker;
     // Timer for non-blocking delays
     private ElapsedTime stateTimer = new ElapsedTime();
     // -------------------- STATE MACHINE --------------------
@@ -40,8 +40,8 @@ public class AutoStateMachine extends LinearOpMode {
         BALL3_FEED,
         BALL3_KICK,
 
-        TURN_TO_STACK,
-        STRAFE_TO_STACK,
+        TURN_TO_COLLECT,
+        STRAFE_TO_COLLECT,
 
         COLLECT_BALLS,
         ADJUST_BALLS,
@@ -94,14 +94,19 @@ public class AutoStateMachine extends LinearOpMode {
     private static final double DRIVE_SPEED = 0.7;
 
     // Kicker servo positions (TUNE ON ROBOT)
-    private static final double KICKER_REST = 0.5;  // kicker down
-    private static final double KICKER_KICK = -1;  // ball pushed
+    private static final double BOTTOM_KICKER_DOWN = 0.5;  // kicker down
+    private static final double BOTTOM_KICKER_UP = 0;  // ball pushed
+    private static final double TOP_KICKER_DOWN = 0.6; 
+    private static final double TOP_KICKER_UP = 0.90;
+    
 
     private double shooterPower = 1.0; // full power
     private double batteryVoltage = 12.0; // full power
     // Flag to indicate if a movement command has started
     private boolean moveStarted = false;
-    private int KICK_BALL_TIME = 900;
+    private static int KICK_BALL_TIME = 900;
+    private static int IS_RED=-1;
+
     // -------------------- OPMODE --------------------
 
     @Override
@@ -128,7 +133,7 @@ public class AutoStateMachine extends LinearOpMode {
                 case START:
                     shooterOn(shooterPower);
                     if (!moveStarted) {
-                        drive(44, DRIVE_SPEED);
+                        drive(49, DRIVE_SPEED);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -140,14 +145,15 @@ public class AutoStateMachine extends LinearOpMode {
 
                 case BALL1_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
                         state = AutoState.BALL2_FEED;
                         stateTimer.reset();
                     }
                     break;
 
                 case BALL2_FEED:
-                    beltOn(0.8);
+                    // topKicker.setPosition(TOP_KICKER_UP);
+                    beltOn(0.9);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff();
                         state = AutoState.BALL2_KICK;
@@ -157,13 +163,14 @@ public class AutoStateMachine extends LinearOpMode {
 
                 case BALL2_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
                         state = AutoState.BALL3_FEED;
                         stateTimer.reset();
                     }
                     break;
 
                 case BALL3_FEED:
+                    // topKicker.setPosition(TOP_KICKER_UP);
                     intakeOn(1.0); beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff(); intakeOff();
@@ -174,25 +181,25 @@ public class AutoStateMachine extends LinearOpMode {
 
                 case BALL3_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
                         shooterOff();
-                        state = AutoState.TURN_TO_STACK;
+                        state = AutoState.TURN_TO_COLLECT;
                         stateTimer.reset();
                     }
                     break;
-                case TURN_TO_STACK:
+                case TURN_TO_COLLECT:
                     if (!moveStarted) {
-                        turn(120, 0.8);//120 for RED
+                        turn(120*IS_RED, 0.5);//120 for RED
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
                         moveStarted = false;
-                        state = AutoState.STRAFE_TO_STACK;
+                        state = AutoState.STRAFE_TO_COLLECT;
                     }
                     break;
-                case STRAFE_TO_STACK:
+                case STRAFE_TO_COLLECT:
                     if (!moveStarted) {
-                        strafe(12.3, 0.8);
+                        strafe(8*IS_RED, 0.5);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -201,11 +208,12 @@ public class AutoStateMachine extends LinearOpMode {
                     }
                     break;
                 case COLLECT_BALLS:
+                    topKicker.setPosition(TOP_KICKER_UP+0.05);
                     shooterOn(-0.3);
-                    intakeOn(0.7);
-                    beltOn(0.4);
+                    intakeOn(1);
+                    beltOn(0.5);
                     if (!moveStarted) {
-                        drive(37, 0.3);
+                        drive(38.25, 0.6);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -219,18 +227,19 @@ public class AutoStateMachine extends LinearOpMode {
                     break;
 
                 case ADJUST_BALLS:
-                    shooterOn(-0.5); intakeOn(-0.5); beltOn(-0.8);
-                    if (stateTimer.milliseconds() > 250) {
-                        intakeOff(); beltOff(); shooterOff();
+                    state = AutoState.DRIVE_BACK_TO_SHOOT;
+                    topKicker.setPosition(TOP_KICKER_UP);
+                    beltOn(0.5);
+                    if (stateTimer.milliseconds() > 100) {
+                        beltOff();
                         state = AutoState.DRIVE_BACK_TO_SHOOT;
                         stateTimer.reset();
-
                     }
                     break;
 
                 case DRIVE_BACK_TO_SHOOT:
                     if (!moveStarted) {
-                        drive(-35, DRIVE_SPEED);
+                        drive(-39, DRIVE_SPEED);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -240,7 +249,7 @@ public class AutoStateMachine extends LinearOpMode {
                     break;
                 case STRAFE_BACK_TO_SHOOT:
                     if (!moveStarted) {
-                        strafe(-12.3, 0.8);
+                        strafe(-8*IS_RED, 0.8);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -251,7 +260,7 @@ public class AutoStateMachine extends LinearOpMode {
                 case TURN_BACK_TO_SHOOT:
                     if (!moveStarted) {
                         shooterOn(shooterPower);
-                        turn(-120, 0.8); //-120 for RED
+                        turn(-118*IS_RED, 0.5); //-120 for RED
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -262,13 +271,14 @@ public class AutoStateMachine extends LinearOpMode {
                     break;
                 case BALL4_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
                         state = AutoState.BALL5_FEED;
                         stateTimer.reset();
                     }
                     break;
 
                 case BALL5_FEED:
+                    // topKicker.setPosition(TOP_KICKER_UP);
                     beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff();
@@ -279,7 +289,7 @@ public class AutoStateMachine extends LinearOpMode {
 
                 case BALL5_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
                         state = AutoState.BALL6_FEED;
                         stateTimer.reset();
                     }
@@ -296,7 +306,7 @@ public class AutoStateMachine extends LinearOpMode {
 
                 case BALL6_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
                         shooterOff();
                         state = AutoState.STOP;
                         moveStarted = false;
@@ -306,7 +316,7 @@ public class AutoStateMachine extends LinearOpMode {
                     break;
                 case STOP:
                     if (!moveStarted) {
-                        strafe(-20, 1.0);
+                        strafe(-20*IS_RED, 1.0);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -340,6 +350,7 @@ public class AutoStateMachine extends LinearOpMode {
         intake = hw.get(DcMotorEx.class, "frontintake");
         belt = hw.get(DcMotorEx.class, "belt");
         kicker = hw.get(Servo.class, "ballkicker");
+        topKicker = hw.get(Servo.class, "topkicker");
         shooterLeft = hw.get(DcMotorEx.class, "leftshooter");
         shooterRight = hw.get(DcMotorEx.class, "rightshooter");
 
@@ -537,18 +548,19 @@ public class AutoStateMachine extends LinearOpMode {
     }
 
     /*
-     * Moves the servo forward to kick one ball,
+     * Moves the servo up/down to kick one ball,
      * then returns it to the rest position.
      */
     private void runKicker() {
         double t = stateTimer.milliseconds();
-        if (t < 600) {
-            kicker.setPosition(KICKER_KICK);
-        } else if (t < 700) {
-            beltOn(-0.8);
-        } else {
-            kicker.setPosition(KICKER_REST);
-            beltOff();
+        topKicker.setPosition(TOP_KICKER_DOWN);
+        if (t >= 250) {
+            kicker.setPosition(BOTTOM_KICKER_UP);
+        }
+        if (t >= KICK_BALL_TIME) {
+            kicker.setPosition(BOTTOM_KICKER_DOWN);
+            topKicker.setPosition(TOP_KICKER_UP);
+            // beltOff();
         }
     }
 

@@ -1,0 +1,415 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.hardware.CRServo;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.CRServo;
+
+@TeleOp(name="Week 3 Teleop", group="Linear Opmode")
+public class week3teleop  extends LinearOpMode {
+
+    // Declare OpMode members.
+    private DcMotor frontLeft = null;
+    private DcMotor frontRight = null;
+    private DcMotor backLeft = null;
+    private DcMotor backRight = null;
+    private DcMotor intake = null;
+    private DcMotor shooterLeft = null;
+    private DcMotor shooterRight = null;
+    private DcMotor belt = null;
+    private Servo kicker = null;
+    private Servo topKicker = null;
+
+    private double shooterPower = 1.0;
+    private double batteryVoltage = 12.0; // full power
+    // ---------------- AUTO SHOOT ----------------
+    ElapsedTime stateTimer = new ElapsedTime();
+    private static final double BOTTOM_KICKER_DOWN = 0.5;  // kicker down
+    private static final double BOTTOM_KICKER_UP = 0;  // ball pushed
+    private static double TOP_KICKER_DOWN = 0.6;
+    private static double TOP_KICKER_UP = 0.9;
+    private static double TOP_KICKER_POSITION = TOP_KICKER_UP;
+    private static int KICK_BALL_TIME = 900;
+    private boolean prevDpadUp = false;
+    private boolean prevDpadDown = false;
+
+    private enum AutoState {
+        START,
+        BALL1_KICK,
+        BALL2_FEED,
+        BALL2_KICK,
+        BALL3_FEED,
+        BALL3_KICK,
+        DONE
+    }
+
+    private AutoState state = AutoState.DONE;
+    
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        // Initialize the hardware variables.
+        frontLeft  = hardwareMap.get(DcMotor.class, "leftfront");
+        frontRight = hardwareMap.get(DcMotor.class, "rightfront");
+        backLeft  = hardwareMap.get(DcMotor.class, "leftrear");
+        backRight = hardwareMap.get(DcMotor.class, "rightrear");
+        intake = hardwareMap.get(DcMotor.class, "frontintake");
+        shooterLeft = hardwareMap.get(DcMotor.class, "leftshooter");
+        shooterRight = hardwareMap.get(DcMotor.class, "rightshooter");
+        belt = hardwareMap.get(DcMotor.class, "belt");
+        // Initialize the servo from the hardware map
+        kicker = hardwareMap.get(Servo.class, "ballkicker"); 
+        topKicker = hardwareMap.get(Servo.class, "topkicker"); 
+
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);//reverse
+        backLeft.setDirection(DcMotor.Direction.FORWARD);//forward
+        frontRight.setDirection(DcMotor.Direction.FORWARD);//forward
+        backRight.setDirection(DcMotor.Direction.REVERSE);//reverse
+        intake.setDirection(DcMotor.Direction.FORWARD);
+        shooterLeft.setDirection(DcMotor.Direction.REVERSE);
+        shooterRight.setDirection(DcMotor.Direction.FORWARD);
+        
+        // Set all motors to run without encoders for simpler teleop control.
+        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        
+        // Set all motors to brake mode
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        shooterLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        shooterRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        
+        // Wait for the game to start (driver presses PLAY)
+        waitForStart();
+
+        // Run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+            
+            // Get joystick inputs
+            double drive = gamepad1.left_stick_y;  // Forward/backward
+            double strafe = -gamepad1.left_stick_x; // Left/right strafing
+            double turn = gamepad1.right_stick_x;  // Turning
+
+            // Calculate motor powers based on mecanum kinematics
+            double frontLeftPower = drive + strafe + turn;
+            double frontRightPower = drive - strafe - turn;
+            double backLeftPower = drive - strafe + turn;
+            double backRightPower = drive + strafe - turn;
+
+            // Normalize the wheel speeds to keep them within the -1.0 to 1.0 range
+            double maxPower = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
+            maxPower = Math.max(maxPower, Math.abs(backLeftPower));
+            maxPower = Math.max(maxPower, Math.abs(backRightPower));
+
+            if (maxPower > 1.0) {
+                frontLeftPower /= maxPower;
+                frontRightPower /= maxPower;
+                backLeftPower /= maxPower;
+                backRightPower /= maxPower;
+            }
+
+            // Set motor powers
+            frontLeft.setPower(frontLeftPower);
+            frontRight.setPower(frontRightPower);
+            backLeft.setPower(backLeftPower);
+            backRight.setPower(backRightPower);
+
+            if (gamepad1.right_bumper) { 
+                intake.setPower(1.0); // Full power
+                topKicker.setPosition(0.9);
+            } else if (gamepad1.right_trigger > 0.1) { 
+                intake.setPower(-1.0); // Full power backwards
+            } else {
+                intake.setPower(0.0); // Stop
+            }
+            //manage the shoot speed based on the dpad button pressed
+            if (gamepad1.dpad_up) {
+                shooterPower=1;
+            }
+            if (gamepad1.dpad_right) {
+                shooterPower=0.925;
+            }
+            if (gamepad1.dpad_down) {
+                shooterPower=0.9;
+            }
+            if (gamepad1.dpad_left) {
+                shooterPower=0.85;
+            }
+            
+            
+            if (gamepad2.left_bumper) { 
+                belt.setPower(1);
+            } else if (gamepad2.left_trigger > 0.1) { 
+                belt.setPower(-1);
+            } else {
+                belt.setPower(0);
+            }
+            if (gamepad2.right_trigger>0.1) {
+                shooterLeft.setPower(-0.2);
+                shooterRight.setPower(-0.2);
+            }
+            
+
+            if (gamepad2.b) {
+                TOP_KICKER_DOWN = 0.6;
+                TOP_KICKER_UP = 0.9;
+                TOP_KICKER_POSITION = TOP_KICKER_UP;
+                topKicker.setPosition(TOP_KICKER_POSITION);
+            }
+            
+            //0.70 is good to shoot from very close - 16 inches
+            
+            //0.68 is good to shoot from closure - 32 inches
+
+            // DPAD UP – increase once per press
+            if (gamepad2.dpad_up && !prevDpadUp) {
+                TOP_KICKER_POSITION = Math.min(0.9, TOP_KICKER_POSITION + 0.01);
+                TOP_KICKER_DOWN = TOP_KICKER_POSITION;
+                TOP_KICKER_UP = TOP_KICKER_POSITION;
+                topKicker.setPosition(TOP_KICKER_POSITION);
+            }
+            
+            // DPAD DOWN – decrease once per press
+            if (gamepad2.dpad_down && !prevDpadDown) {
+                TOP_KICKER_POSITION = Math.max(0.6, TOP_KICKER_POSITION - 0.01);
+                TOP_KICKER_DOWN = TOP_KICKER_POSITION;
+                TOP_KICKER_UP = TOP_KICKER_POSITION;
+                topKicker.setPosition(TOP_KICKER_POSITION);
+            }
+            
+            // Save previous states
+            prevDpadUp = gamepad2.dpad_up;
+            prevDpadDown = gamepad2.dpad_down;
+
+            
+            // ---------- AUTO SHOOT CONTROLS ----------
+            if (gamepad2.x) {
+                stopAllShooter();
+                state = AutoState.DONE;
+            }
+            if (gamepad2.y) {
+                state = AutoState.START;
+                runAutoShoot();
+            }
+            else if (gamepad2.right_bumper) {
+                shooterLeft.setPower(shooterPower);
+                shooterRight.setPower(shooterPower);
+                topKicker.setPosition(TOP_KICKER_DOWN);
+                sleep(1000);
+                kicker.setPosition(BOTTOM_KICKER_UP); // Example: Move to position 0
+                telemetry.addData("Servo Position", "Up Position");
+                sleep(KICK_BALL_TIME);
+                kicker.setPosition(BOTTOM_KICKER_DOWN);
+                topKicker.setPosition(TOP_KICKER_UP);
+            }
+            else {
+                shooterLeft.setPower(0);
+                shooterRight.setPower(0);
+            }
+            
+            
+            // Telemetry for debugging (optional)
+            telemetry.addData("Status", "Running");
+            telemetry.addData("Front Left Power", frontLeftPower);
+            telemetry.addData("Front Right Power", frontRightPower);
+            telemetry.addData("Back Left Power", backLeftPower);
+            telemetry.addData("Back Right Power", backRightPower);
+            telemetry.addData("Kicker Servo Position", kicker.getPosition());
+            telemetry.addData("Ramp Servo Position", topKicker.getPosition());
+            telemetry.addData("Shooter Speed", shooterPower);
+            telemetry.addData("Battery", getBatteryVoltage());
+            telemetry.update();
+
+        }
+    }
+    
+    /*
+    * Runs the intake to collect a ball
+    */
+    private void intakeOn(double power) {
+        intake.setPower(power);
+    }
+
+    /*
+    * Stops the intake motor
+    */
+    private void intakeOff() {
+        intake.setPower(0);
+    }
+
+    /*
+    * Runs belt forward to feed ball into shooter
+    */
+    private void beltOn(double power) {
+        belt.setPower(power);
+    }
+
+    /*
+    * Stops the belt motor
+    */
+    private void beltOff() {
+        belt.setPower(0);
+    }
+
+    /*
+    * Spins up both shooter motors
+    */
+    private void shooterOn(double power) {
+        shooterLeft.setPower(power);
+        shooterRight.setPower(power);
+    }
+
+    /*
+    * Stops shooter motors
+    */
+    private void shooterOff() {
+        shooterLeft.setPower(0);
+        shooterRight.setPower(0);
+    }
+
+    /*
+     * Moves the servo up/down to kick one ball,
+     * then returns it to the rest position.
+     */
+    private void runKicker() {
+        double t = stateTimer.milliseconds();
+        topKicker.setPosition(TOP_KICKER_DOWN);
+        if (t >= 250) {
+            kicker.setPosition(BOTTOM_KICKER_UP);
+        }
+        if (t >= KICK_BALL_TIME) {
+            kicker.setPosition(BOTTOM_KICKER_DOWN);
+            topKicker.setPosition(TOP_KICKER_UP);
+            // beltOff();
+        }
+    }
+
+    
+     /**
+     * Returns the minimum voltage reported by any voltage sensor on the hardware map.
+     * @return The lowest voltage reported.
+     */
+    public double getBatteryVoltage() {
+        double result = Double.POSITIVE_INFINITY;
+        // Loop through all voltage sensors on the hardware map
+        for (VoltageSensor sensor : hardwareMap.voltageSensor) {
+            double voltage = sensor.getVoltage();
+            if (voltage > 0) {
+                result = Math.min(result, voltage);
+            }
+        }
+        return result;
+    }
+    
+    public double getShooterSpeedFromVoltage() {
+        double v = getBatteryVoltage();
+
+        if (v > 14.0) return 0.83;
+        if (v > 13.9) return 0.85;
+        if (v >= 13.5) return 0.865;
+        if (v >= 13.3) return 0.87;
+        if (v >= 13.2) return 0.88;
+        if (v >= 13.1) return 0.89;
+        if (v >= 13.0) return 0.90;
+        if (v >= 12.9) return 0.91;
+        if (v >= 12.7) return 0.92;
+        if (v > 12.5) return 0.94;
+        if (v >= 12.0) return 0.95;
+
+        return 1.0;
+    }
+
+    
+    
+    // ---------------- AUTO SHOOT LOGIC ----------------
+    void runAutoShoot() {
+        shooterPower = getShooterSpeedFromVoltage(); 
+        while (opModeIsActive() && state != AutoState.DONE) {
+            switch (state) {
+                case START:
+                    shooterOn(shooterPower);
+                    topKicker.setPosition(TOP_KICKER_DOWN);
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+300) {
+                        state = AutoState.BALL1_KICK;
+                        stateTimer.reset();
+                    }
+                    break;
+                case BALL1_KICK:
+                    runKicker();
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                        state = AutoState.BALL2_FEED;
+                        stateTimer.reset();
+                    }
+                    break;
+
+                case BALL2_FEED:
+                    // topKicker.setPosition(TOP_KICKER_UP);
+                    beltOn(0.8);
+                    if (stateTimer.milliseconds() > 1000) {
+                        beltOff();
+                        state = AutoState.BALL2_KICK;
+                        stateTimer.reset();
+                    }
+                    break;
+
+                case BALL2_KICK:
+                    runKicker();
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                        state = AutoState.BALL3_FEED;
+                        stateTimer.reset();
+                    }
+                    break;
+
+                case BALL3_FEED:
+                    // topKicker.setPosition(TOP_KICKER_UP);
+                    intakeOn(1.0); beltOn(0.8);
+                    if (stateTimer.milliseconds() > 1000) {
+                        beltOff(); intakeOff();
+                        state = AutoState.BALL3_KICK;
+                        stateTimer.reset();
+                    }
+                    break;
+
+                case BALL3_KICK:
+                    runKicker();
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                        shooterOff();
+                        state = AutoState.DONE;
+                        stateTimer.reset();
+                    }
+                    break;
+            }
+            telemetry.addData("State", state);
+            telemetry.addData("Shooter Power", shooterPower);
+            telemetry.addData("Battery Voltage", batteryVoltage);        
+            telemetry.update();
+        } //while
+    }
+
+    void stopAllShooter() {
+        shooterLeft.setPower(0);
+        shooterRight.setPower(0);
+        belt.setPower(0);
+        intake.setPower(0);
+        kicker.setPosition(BOTTOM_KICKER_DOWN);
+        topKicker.setPosition(TOP_KICKER_UP);
+    }
+   
+}
