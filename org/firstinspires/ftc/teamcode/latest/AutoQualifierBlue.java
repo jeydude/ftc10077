@@ -137,7 +137,7 @@ public class AutoQualifierBlue extends LinearOpMode {
                     break;
 
                 case BALL2_FEED:
-                    beltOn(0.9);
+                    beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff();
                         state = AutoState.BALL2_KICK;
@@ -244,6 +244,7 @@ public class AutoQualifierBlue extends LinearOpMode {
                         moveStarted = false;
                         state = AutoState.TURN_BACK_TO_SHOOT;
                         stateTimer.reset();
+					}
                     break;
                 case TURN_BACK_TO_SHOOT:
                     if (!moveStarted) {
