@@ -29,8 +29,9 @@ public class AutoQualifierBlue extends LinearOpMode {
     private DcMotorEx fl, fr, bl, br, intake, belt, shooterLeft, shooterRight;
     // Analog servo kicker
     private Servo kicker, topKicker;
-    // Timer for non-blocking delays
+// -------------------- TIMERS --------------------
     private ElapsedTime stateTimer = new ElapsedTime();
+
     // -------------------- STATE MACHINE --------------------
     private enum AutoState {
         START,
@@ -42,7 +43,6 @@ public class AutoQualifierBlue extends LinearOpMode {
 
         TURN_TO_COLLECT,
         STRAFE_TO_COLLECT,
-
         COLLECT_BALLS,
         ADJUST_BALLS,
         DRIVE_BACK_TO_SHOOT,
@@ -59,53 +59,32 @@ public class AutoQualifierBlue extends LinearOpMode {
         DONE
     }
     private AutoState state = AutoState.START;
+    private boolean moveStarted = false;
     
     // -------------------- CONSTANTS --------------------
 
     // Encoder ticks per motor revolution (GoBILDA 312 RPM)
     private static final double TICKS_PER_REV = 537.6;
-
-    // Mecanum wheel diameter in inches
     private static final double WHEEL_DIAMETER_INCHES = 4.0;
-
-    // Gear ratio (1.0 = direct drive)
     private static final double GEAR_RATIO = 1.0;
     // Correction factor to improve distance accuracy
     private static final double CORRECTION_VALUE = 0.92;
-    // Encoder ticks required to move the robot 1 inch
-    // Adjust based on your robot's performance
-    // Calculate as (ticks per rev * gear ratio) / (wheel circumference)
-    // wheel circumference = pi * diameter
-    // Thus, TICKS_PER_INCH = (TICKS_PER_REV * GEAR_RATIO) / (π * WHEEL_DIAMETER_INCHES)
-    // Then multiply by correction factor
-    private static final double TICKS_PER_INCH =
-            ((TICKS_PER_REV * GEAR_RATIO) /
-            (Math.PI * WHEEL_DIAMETER_INCHES))*CORRECTION_VALUE;
-    
-    // Strafing is less efficient due to mecanum rollers
-    // This multiplier compensates for sideways slip
     private static final double STRAFE_MULTIPLIER = 1.1;
-
-    // Approximate encoder ticks needed to rotate 1 degree
-    // This must be tuned for your specific robot
     private static final double TICKS_PER_DEGREE =10.8;
-
-    // Default driving speed
     private static final double DRIVE_SPEED = 0.7;
+    private static final double TICKS_PER_INCH =
+            ((TICKS_PER_REV * GEAR_RATIO) / (Math.PI * WHEEL_DIAMETER_INCHES))*CORRECTION_VALUE;
 
     // Kicker servo positions (TUNE ON ROBOT)
-    private static final double BOTTOM_KICKER_DOWN = 0.5;  // kicker down
-    private static final double BOTTOM_KICKER_UP = 0;  // ball pushed
+    private static final double BOTTOM_KICKER_DOWN = 0.5;
+    private static final double BOTTOM_KICKER_UP = 0.0; 
     private static final double TOP_KICKER_DOWN = 0.6; 
     private static final double TOP_KICKER_UP = 0.90;
     
-
+    private static final int KICK_BALL_TIME = 900;
+    private static final int IS_RED = -1;
     private double shooterPower = 1.0; // full power
     private double batteryVoltage = 12.0; // full power
-    // Flag to indicate if a movement command has started
-    private boolean moveStarted = false;
-    private static int KICK_BALL_TIME = 900;
-    private static int IS_RED=-1;
 
     // -------------------- OPMODE --------------------
 
@@ -115,6 +94,12 @@ public class AutoQualifierBlue extends LinearOpMode {
         // Initialize motors and encoders
         initDrive(hardwareMap);
 
+        shooterOff();
+        intakeOff();
+        beltOff();
+
+        resetEncoders();
+
         telemetry.addLine("Autonomous Ready");
         telemetry.update();
 
@@ -123,20 +108,20 @@ public class AutoQualifierBlue extends LinearOpMode {
         // Get shooter speed
         batteryVoltage = getBatteryVoltage();
         shooterPower = calculateShooterPower(batteryVoltage);
-        telemetry.addData("Initial Shooter Power", shooterPower);
-        telemetry.addData("Initial Battery Voltage", batteryVoltage);
-        telemetry.update();
-
+ 
         stateTimer.reset();
+
         while (opModeIsActive() && state != AutoState.DONE) {
             switch (state) {
                 case START:
                     shooterOn(shooterPower);
+                    topKicker.setPosition(TOP_KICKER_DOWN);
                     if (!moveStarted) {
                         drive(49, DRIVE_SPEED);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
+                        stopDrive();
                         moveStarted = false;
                         state = AutoState.BALL1_KICK;
                         stateTimer.reset();
@@ -145,14 +130,13 @@ public class AutoQualifierBlue extends LinearOpMode {
 
                 case BALL1_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
                         state = AutoState.BALL2_FEED;
                         stateTimer.reset();
                     }
                     break;
 
                 case BALL2_FEED:
-                    // topKicker.setPosition(TOP_KICKER_UP);
                     beltOn(0.9);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff();
@@ -163,14 +147,13 @@ public class AutoQualifierBlue extends LinearOpMode {
 
                 case BALL2_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
                         state = AutoState.BALL3_FEED;
                         stateTimer.reset();
                     }
                     break;
 
                 case BALL3_FEED:
-                    // topKicker.setPosition(TOP_KICKER_UP);
                     intakeOn(1.0); beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff(); intakeOff();
@@ -181,7 +164,7 @@ public class AutoQualifierBlue extends LinearOpMode {
 
                 case BALL3_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 100) {
                         shooterOff();
                         state = AutoState.TURN_TO_COLLECT;
                         stateTimer.reset();
@@ -189,27 +172,30 @@ public class AutoQualifierBlue extends LinearOpMode {
                     break;
                 case TURN_TO_COLLECT:
                     if (!moveStarted) {
-                        turn(120*IS_RED, 0.5);//120 for RED
+                        turn(120 * IS_RED, 0.5);//120 for RED
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
+                        stopDrive();
                         moveStarted = false;
                         state = AutoState.STRAFE_TO_COLLECT;
+                        stateTimer.reset();
                     }
                     break;
                 case STRAFE_TO_COLLECT:
                     if (!moveStarted) {
-                        strafe(8*IS_RED, 0.5);
+                        strafe(8 * IS_RED, 0.5);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
+                        stopDrive();
                         moveStarted = false;
                         state = AutoState.COLLECT_BALLS;
+                        stateTimer.reset();
                     }
                     break;
                 case COLLECT_BALLS:
                     topKicker.setPosition(TOP_KICKER_UP+0.05);
-                    shooterOn(-0.3);
                     intakeOn(1);
                     beltOn(0.5);
                     if (!moveStarted) {
@@ -217,20 +203,18 @@ public class AutoQualifierBlue extends LinearOpMode {
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
-                        moveStarted = false;
+                        stopDrive();
                         intakeOff();
                         beltOff();
-                        shooterOff();
+                        moveStarted = false;
                         state = AutoState.ADJUST_BALLS;
                         stateTimer.reset();
-                    }
                     break;
 
                 case ADJUST_BALLS:
-                    state = AutoState.DRIVE_BACK_TO_SHOOT;
                     topKicker.setPosition(TOP_KICKER_UP);
                     beltOn(0.5);
-                    if (stateTimer.milliseconds() > 100) {
+                    if (stateTimer.milliseconds() > 150) {
                         beltOff();
                         state = AutoState.DRIVE_BACK_TO_SHOOT;
                         stateTimer.reset();
@@ -243,27 +227,32 @@ public class AutoQualifierBlue extends LinearOpMode {
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
+                        stopDrive();
                         moveStarted = false;
                         state = AutoState.STRAFE_BACK_TO_SHOOT;
+                        stateTimer.reset();
                     }
                     break;
                 case STRAFE_BACK_TO_SHOOT:
+                    topKicker.setPosition(TOP_KICKER_DOWN);
                     if (!moveStarted) {
-                        strafe(-8*IS_RED, 0.8);
+                        strafe(-8 * IS_RED, 0.8);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
+                        stopDrive();
                         moveStarted = false;
                         state = AutoState.TURN_BACK_TO_SHOOT;
-                    }
+                        stateTimer.reset();
                     break;
                 case TURN_BACK_TO_SHOOT:
                     if (!moveStarted) {
                         shooterOn(shooterPower);
-                        turn(-118*IS_RED, 0.5); //-120 for RED
+                        turn(-118 * IS_RED, 0.5); //-120 for RED
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
+                        stopDrive();
                         moveStarted = false;
                         state = AutoState.BALL4_KICK;
                         stateTimer.reset();
@@ -271,7 +260,7 @@ public class AutoQualifierBlue extends LinearOpMode {
                     break;
                 case BALL4_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
                         state = AutoState.BALL5_FEED;
                         stateTimer.reset();
                     }
@@ -289,7 +278,8 @@ public class AutoQualifierBlue extends LinearOpMode {
 
                 case BALL5_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
+                        stopDrive();
                         state = AutoState.BALL6_FEED;
                         stateTimer.reset();
                     }
@@ -306,7 +296,7 @@ public class AutoQualifierBlue extends LinearOpMode {
 
                 case BALL6_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 100) {
                         shooterOff();
                         state = AutoState.STOP;
                         moveStarted = false;
@@ -316,13 +306,14 @@ public class AutoQualifierBlue extends LinearOpMode {
                     break;
                 case STOP:
                     if (!moveStarted) {
-                        strafe(-20*IS_RED, 1.0);
+                        strafe(-20 * IS_RED, 1.0);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
                         moveStarted = false;
                         stopDrive();
                         state = AutoState.DONE;
+                        stateTimer.reset();
                     }
                     break;
             }
@@ -368,9 +359,10 @@ public class AutoQualifierBlue extends LinearOpMode {
             m.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
-        // Intake should coast or brake depending on your design
-        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        // Shooter motors should coast for smoother RPM
+        intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        belt.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        // // Shooter motors should coast for smoother RPM
         shooterLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shooterRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
@@ -398,7 +390,6 @@ public class AutoQualifierBlue extends LinearOpMode {
      * @param power   Motor power (0.0 - 1.0)
      */
     private void drive(double inches, double power) {
-        if (!moveStarted) { 
 
             // Convert inches to encoder ticks
             int ticks = (int) (inches * TICKS_PER_INCH);
@@ -409,8 +400,6 @@ public class AutoQualifierBlue extends LinearOpMode {
             // Execute the movement
             runToPosition(power);
             // runToPositionWithBrake(power);
-            moveStarted = true;
-        }
     }
 
     /*
@@ -419,19 +408,13 @@ public class AutoQualifierBlue extends LinearOpMode {
      * @param power   Motor power
      */
     private void strafe(double inches, double power) {
-        if (!moveStarted) {
-            // Apply strafe compensation
-            int ticks = (int) (inches * TICKS_PER_INCH * STRAFE_MULTIPLIER);
+        // Apply strafe compensation
+        int ticks = (int) (inches * TICKS_PER_INCH * STRAFE_MULTIPLIER);
 
-            // Mecanum wheel strafing pattern
-            setTargets(
-                    ticks, -ticks,
-                -ticks,  ticks
-            );
-            runToPosition(power);
-            // runToPositionWithBrake(power);
-            moveStarted = true;
-        }
+        // Mecanum wheel strafing pattern
+        setTargets(ticks, -ticks, -ticks,  ticks);
+        runToPosition(power);
+        // runToPositionWithBrake(power);
     }
 
     /*
@@ -440,20 +423,17 @@ public class AutoQualifierBlue extends LinearOpMode {
      * @param power    Motor power
      */
     private void turn(double degrees, double power) {
-        if (!moveStarted) {
-            // Convert degrees to encoder ticks
-            int ticks = (int) (degrees * TICKS_PER_DEGREE);
+        // Convert degrees to encoder ticks
+        int ticks = (int) (degrees * TICKS_PER_DEGREE);
 
-            // Left and right sides move opposite directions
-            setTargets(
-                    ticks, -ticks,
-                    ticks, -ticks
-            );
+        // Left and right sides move opposite directions
+        setTargets(
+                ticks, -ticks,
+                ticks, -ticks
+        );
 
-            runToPosition(power);
-            // runToPositionWithBrake(power);
-            moveStarted = true;
-        }
+        runToPosition(power);
+        // runToPositionWithBrake(power);
     }
 
     // -------------------- LOW-LEVEL HELPERS --------------------
@@ -471,9 +451,9 @@ public class AutoQualifierBlue extends LinearOpMode {
     }
 
     /*
-     * Runs motors to their target positions
-     * and blocks until movement is complete.
-     */
+    * Starts RUN_TO_POSITION movement.
+    * Movement completion must be checked with driveCompleted().
+    */
     private void runToPosition(double power) {
         DcMotorEx[] motors = new DcMotorEx[]{fl, fr, bl, br};
         for (DcMotorEx m : motors) {
@@ -497,51 +477,20 @@ public class AutoQualifierBlue extends LinearOpMode {
      * Because braking is enabled, the robot will hold position.
      */
     private void stopDrive() {
-        fl.setPower(0);
-        fr.setPower(0);
-        bl.setPower(0);
-        br.setPower(0);
+        for (DcMotorEx m : new DcMotorEx[]{fl, fr, bl, br}) {
+            m.setPower(0);
+            m.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
     }
 
-    /*
-    * Runs the intake to collect a ball
-    */
-    private void intakeOn(double power) {
-        intake.setPower(power);
-    }
-
-    /*
-    * Stops the intake motor
-    */
-    private void intakeOff() {
-        intake.setPower(0);
-    }
-
-    /*
-    * Runs belt forward to feed ball into shooter
-    */
-    private void beltOn(double power) {
-        belt.setPower(power);
-    }
-
-    /*
-    * Stops the belt motor
-    */
-    private void beltOff() {
-        belt.setPower(0);
-    }
-
-    /*
-    * Spins up both shooter motors
-    */
+    private void intakeOn(double power) {intake.setPower(power); }
+    private void intakeOff() {intake.setPower(0);}
+    private void beltOn(double power) { belt.setPower(power); }
+    private void beltOff() { belt.setPower(0);}
     private void shooterOn(double power) {
         shooterLeft.setPower(power);
         shooterRight.setPower(power);
     }
-
-    /*
-    * Stops shooter motors
-    */
     private void shooterOff() {
         shooterLeft.setPower(0);
         shooterRight.setPower(0);
@@ -554,13 +503,10 @@ public class AutoQualifierBlue extends LinearOpMode {
     private void runKicker() {
         double t = stateTimer.milliseconds();
         topKicker.setPosition(TOP_KICKER_DOWN);
-        if (t >= 250) {
-            kicker.setPosition(BOTTOM_KICKER_UP);
-        }
+        if (t >= 250) { kicker.setPosition(BOTTOM_KICKER_UP); }
         if (t >= KICK_BALL_TIME) {
             kicker.setPosition(BOTTOM_KICKER_DOWN);
             topKicker.setPosition(TOP_KICKER_UP);
-            // beltOff();
         }
     }
 
