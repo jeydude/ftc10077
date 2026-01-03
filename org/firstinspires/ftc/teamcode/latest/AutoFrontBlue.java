@@ -22,8 +22,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *  - Encoder-based movement
  *  - Motor braking when stopped
  */
-@Autonomous(name = "QualifierRed", group = "Drive")
-public class AutoQualifierRed extends LinearOpMode {
+@Autonomous(name = "QualifierFrontBlue", group = "Drive")
+public class AutoFrontBlue extends LinearOpMode {
 
     // Drive motors
     private DcMotorEx fl, fr, bl, br, intake, belt, shooterLeft, shooterRight;
@@ -35,20 +35,21 @@ public class AutoQualifierRed extends LinearOpMode {
     // -------------------- STATE MACHINE --------------------
     private enum AutoState {
         START,
+        TURN_TO_SHOOT,
+        STRAFE_TO_SHOOT,
         BALL1_KICK,
         BALL2_FEED,
         BALL2_KICK,
         BALL3_FEED,
         BALL3_KICK,
-
+        
+        MOVE_TO_COLLECT,
         TURN_TO_COLLECT,
-        STRAFE_TO_COLLECT,
         COLLECT_BALLS,
         ADJUST_BALLS,
         DRIVE_BACK_TO_SHOOT,
-        STRAFE_BACK_TO_SHOOT,
         TURN_BACK_TO_SHOOT,
-
+        MOVE_BACK_TO_SHOOT,
         BALL4_KICK,
         BALL5_FEED,
         BALL5_KICK,
@@ -82,7 +83,7 @@ public class AutoQualifierRed extends LinearOpMode {
     private static double TOP_KICKER_UP = 0.25;
     
     private static final int KICK_BALL_TIME = 900;
-    private static final int IS_RED = 1;
+    private static final int IS_BLUE = 1;
     private double shooterPower = 1.0; // full power
     private double batteryVoltage = 12.0; // full power
 
@@ -117,7 +118,31 @@ public class AutoQualifierRed extends LinearOpMode {
                     shooterOn(shooterPower);
                     topKicker.setPosition(TOP_KICKER_DOWN);
                     if (!moveStarted) {
-                        drive(49, DRIVE_SPEED);
+                        drive(-12, DRIVE_SPEED);
+                        moveStarted = true;
+                    }
+                    if (driveCompleted()) {
+                        stopDrive();
+                        moveStarted = false;
+                        state = AutoState.TURN_TO_SHOOT;
+                        stateTimer.reset();
+                    }
+                    break;
+                case TURN_TO_SHOOT:
+                    if (!moveStarted) {
+                        turn(25 * IS_BLUE, 0.5);//120 for RED
+                        moveStarted = true;
+                    }
+                    if (driveCompleted()) {
+                        stopDrive();
+                        moveStarted = false;
+                        state = AutoState.STRAFE_TO_SHOOT;
+                        stateTimer.reset();
+                    }
+                    break;
+                case STRAFE_TO_SHOOT:
+                    if (!moveStarted) {
+                        strafe(-8 * IS_BLUE, 0.5);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -127,7 +152,6 @@ public class AutoQualifierRed extends LinearOpMode {
                         stateTimer.reset();
                     }
                     break;
-
                 case BALL1_KICK:
                     runKicker();
                     if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
@@ -166,25 +190,26 @@ public class AutoQualifierRed extends LinearOpMode {
                     runKicker();
                     if (stateTimer.milliseconds() > KICK_BALL_TIME + 100) {
                         shooterOff();
+                        state = AutoState.MOVE_TO_COLLECT;
+                        stateTimer.reset();
+                    }
+                    break;
+                case MOVE_TO_COLLECT:
+                    shooterOff();
+                    if (!moveStarted) {
+                        drive(-14, DRIVE_SPEED);
+                        moveStarted = true;
+                    }
+                    if (driveCompleted()) {
+                        stopDrive();
+                        moveStarted = false;
                         state = AutoState.TURN_TO_COLLECT;
                         stateTimer.reset();
                     }
                     break;
                 case TURN_TO_COLLECT:
                     if (!moveStarted) {
-                        turn(120 * IS_RED, 0.5);//120 for RED
-                        moveStarted = true;
-                    }
-                    if (driveCompleted()) {
-                        stopDrive();
-                        moveStarted = false;
-                        state = AutoState.STRAFE_TO_COLLECT;
-                        stateTimer.reset();
-                    }
-                    break;
-                case STRAFE_TO_COLLECT:
-                    if (!moveStarted) {
-                        strafe(6.5 * IS_RED, 0.5);
+                        turn(-105 * IS_BLUE, 0.5);//120 for RED
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -199,7 +224,7 @@ public class AutoQualifierRed extends LinearOpMode {
                     intakeOn(0.9);
                     beltOn(0.3);
                     if (!moveStarted) {
-                        drive(40.00, 0.6);
+                        drive(44.00, 0.6);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -214,9 +239,7 @@ public class AutoQualifierRed extends LinearOpMode {
 
                 case ADJUST_BALLS:
                     topKicker.setPosition(TOP_KICKER_UP);
-                    beltOn(0.5);
                     if (stateTimer.milliseconds() > 150) {
-                        beltOff();
                         state = AutoState.DRIVE_BACK_TO_SHOOT;
                         stateTimer.reset();
                     }
@@ -224,20 +247,7 @@ public class AutoQualifierRed extends LinearOpMode {
 
                 case DRIVE_BACK_TO_SHOOT:
                     if (!moveStarted) {
-                        drive(-40, DRIVE_SPEED);
-                        moveStarted = true;
-                    }
-                    if (driveCompleted()) {
-                        stopDrive();
-                        moveStarted = false;
-                        state = AutoState.STRAFE_BACK_TO_SHOOT;
-                        stateTimer.reset();
-                    }
-                    break;
-                case STRAFE_BACK_TO_SHOOT:
-                    topKicker.setPosition(TOP_KICKER_DOWN);
-                    if (!moveStarted) {
-                        strafe(-6.0 * IS_RED, 0.8);
+                        drive(-44, DRIVE_SPEED);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -249,8 +259,20 @@ public class AutoQualifierRed extends LinearOpMode {
                     break;
                 case TURN_BACK_TO_SHOOT:
                     if (!moveStarted) {
-                        shooterOn(shooterPower);
-                        turn(-122 * IS_RED, 0.5); //-120 for RED
+                        turn(100 * IS_BLUE, 0.5); //-120 for RED
+                        moveStarted = true;
+                    }
+                    if (driveCompleted()) {
+                        stopDrive();
+                        moveStarted = false;
+                        state = AutoState.MOVE_BACK_TO_SHOOT;
+                        stateTimer.reset();
+                    }
+                    break;
+                case MOVE_BACK_TO_SHOOT:
+                    shooterOn(shooterPower);
+                    if (!moveStarted) {
+                        drive(14, DRIVE_SPEED);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -308,7 +330,7 @@ public class AutoQualifierRed extends LinearOpMode {
                     break;
                 case STOP:
                     if (!moveStarted) {
-                        strafe(-20 * IS_RED, 1.0);
+                        drive(-10, 1.0);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -524,19 +546,7 @@ public class AutoQualifierRed extends LinearOpMode {
 
     private double calculateShooterPower(double voltage) {
         double v = voltage;
-
-        if (v >= 14.0) return 0.78;
-        else if (v >= 13.9) return 0.80;
-        else if (v >= 13.5) return 0.82;
-        else if (v >= 13.3) return 0.83;
-        else if (v >= 13.2) return 0.84;
-        else if (v >= 13.1) return 0.85;
-        else if (v >= 13.0) return 0.86;
-        else if (v >= 12.9) return 0.87;
-        else if (v >= 12.7) return 0.88;
-        else if (v >= 12.5) return 0.90;
-        else if (v >= 12.0) return 0.92;
-        else return 0.95;
+        return 0.98;
     }
 
 }

@@ -76,10 +76,10 @@ public class AutoQualifierBlue extends LinearOpMode {
             ((TICKS_PER_REV * GEAR_RATIO) / (Math.PI * WHEEL_DIAMETER_INCHES))*CORRECTION_VALUE;
 
     // Kicker servo positions (TUNE ON ROBOT)
-    private static final double BOTTOM_KICKER_DOWN = 0.5;
-    private static final double BOTTOM_KICKER_UP = 0.0; 
-    private static final double TOP_KICKER_DOWN = 0.6; 
-    private static final double TOP_KICKER_UP = 0.90;
+    private static final double BOTTOM_KICKER_DOWN = 0.75;
+    private static final double BOTTOM_KICKER_UP = 0.4;
+    private static double TOP_KICKER_DOWN = 0.03;
+    private static double TOP_KICKER_UP = 0.25;
     
     private static final int KICK_BALL_TIME = 900;
     private static final int IS_RED = -1;
@@ -184,7 +184,7 @@ public class AutoQualifierBlue extends LinearOpMode {
                     break;
                 case STRAFE_TO_COLLECT:
                     if (!moveStarted) {
-                        strafe(8 * IS_RED, 0.5);
+                        strafe(6.5 * IS_RED, 0.5);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -196,10 +196,10 @@ public class AutoQualifierBlue extends LinearOpMode {
                     break;
                 case COLLECT_BALLS:
                     topKicker.setPosition(TOP_KICKER_UP+0.05);
-                    intakeOn(1);
-                    beltOn(0.5);
+                    intakeOn(0.9);
+                    beltOn(0.3);
                     if (!moveStarted) {
-                        drive(38.25, 0.6);
+                        drive(40.00, 0.6);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -209,6 +209,7 @@ public class AutoQualifierBlue extends LinearOpMode {
                         moveStarted = false;
                         state = AutoState.ADJUST_BALLS;
                         stateTimer.reset();
+                    }
                     break;
 
                 case ADJUST_BALLS:
@@ -223,7 +224,7 @@ public class AutoQualifierBlue extends LinearOpMode {
 
                 case DRIVE_BACK_TO_SHOOT:
                     if (!moveStarted) {
-                        drive(-39, DRIVE_SPEED);
+                        drive(-40, DRIVE_SPEED);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -236,7 +237,7 @@ public class AutoQualifierBlue extends LinearOpMode {
                 case STRAFE_BACK_TO_SHOOT:
                     topKicker.setPosition(TOP_KICKER_DOWN);
                     if (!moveStarted) {
-                        strafe(-8 * IS_RED, 0.8);
+                        strafe(-6.0 * IS_RED, 0.8);
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -244,12 +245,12 @@ public class AutoQualifierBlue extends LinearOpMode {
                         moveStarted = false;
                         state = AutoState.TURN_BACK_TO_SHOOT;
                         stateTimer.reset();
-					}
+                    }
                     break;
                 case TURN_BACK_TO_SHOOT:
                     if (!moveStarted) {
                         shooterOn(shooterPower);
-                        turn(-118 * IS_RED, 0.5); //-120 for RED
+                        turn(-122 * IS_RED, 0.5); //-120 for RED
                         moveStarted = true;
                     }
                     if (driveCompleted()) {
@@ -524,18 +525,18 @@ public class AutoQualifierBlue extends LinearOpMode {
     private double calculateShooterPower(double voltage) {
         double v = voltage;
 
-        if (v >= 14.0) return 0.83;
-        else if (v >= 13.9) return 0.85;
-        else if (v >= 13.5) return 0.865;
-        else if (v >= 13.3) return 0.87;
-        else if (v >= 13.2) return 0.88;
-        else if (v >= 13.1) return 0.89;
-        else if (v >= 13.0) return 0.90;
-        else if (v >= 12.9) return 0.91;
-        else if (v >= 12.7) return 0.92;
-        else if (v >= 12.5) return 0.94;
-        else if (v >= 12.0) return 0.95;
-        else return 0.97;
+        if (v >= 14.0) return 0.78;
+        else if (v >= 13.9) return 0.80;
+        else if (v >= 13.5) return 0.82;
+        else if (v >= 13.3) return 0.83;
+        else if (v >= 13.2) return 0.84;
+        else if (v >= 13.1) return 0.85;
+        else if (v >= 13.0) return 0.86;
+        else if (v >= 12.9) return 0.87;
+        else if (v >= 12.7) return 0.88;
+        else if (v >= 12.5) return 0.90;
+        else if (v >= 12.0) return 0.92;
+        else return 0.95;
     }
 
 }

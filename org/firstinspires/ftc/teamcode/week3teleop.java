@@ -27,14 +27,14 @@ public class week3teleop  extends LinearOpMode {
     private Servo kicker = null;
     private Servo topKicker = null;
 
-    private double shooterPower = 1.0;
-    private double batteryVoltage = 12.0; // full power
+    private double shooterPower = 0.88;
+    private double batteryVoltage = 12.5; // full power
     // ---------------- AUTO SHOOT ----------------
     ElapsedTime stateTimer = new ElapsedTime();
-    private static final double BOTTOM_KICKER_DOWN = 0.5;  // kicker down
-    private static final double BOTTOM_KICKER_UP = 0;  // ball pushed
-    private static double TOP_KICKER_DOWN = 0.6;
-    private static double TOP_KICKER_UP = 0.9;
+    private static final double BOTTOM_KICKER_DOWN = 0.75;
+    private static final double BOTTOM_KICKER_UP = 0.4;
+    private static double TOP_KICKER_DOWN = 0.03;
+    private static double TOP_KICKER_UP = 0.25;
     private static double TOP_KICKER_POSITION = TOP_KICKER_UP;
     private static int KICK_BALL_TIME = 900;
     private boolean prevDpadUp = false;
@@ -130,30 +130,54 @@ public class week3teleop  extends LinearOpMode {
             frontRight.setPower(frontRightPower);
             backLeft.setPower(backLeftPower);
             backRight.setPower(backRightPower);
-
+            //Driver uses gamepad 1
+            //Shooter uses gamepad 2
             if (gamepad1.right_bumper) { 
-                intake.setPower(1.0); // Full power
-                topKicker.setPosition(0.9);
+                intake.setPower(1.0); 
+                topKicker.setPosition(TOP_KICKER_UP);
             } else if (gamepad1.right_trigger > 0.1) { 
-                intake.setPower(-1.0); // Full power backwards
+                intake.setPower(-1.0);
             } else {
-                intake.setPower(0.0); // Stop
+                intake.setPower(0.0);
             }
             //manage the shoot speed based on the dpad button pressed
             if (gamepad1.dpad_up) {
                 shooterPower=1;
             }
             if (gamepad1.dpad_right) {
-                shooterPower=0.925;
-            }
-            if (gamepad1.dpad_down) {
                 shooterPower=0.9;
             }
-            if (gamepad1.dpad_left) {
+            if (gamepad1.dpad_down) {
                 shooterPower=0.85;
             }
+            if (gamepad1.dpad_left) {
+                shooterPower=0.8;
+            }
+            if (gamepad1.a) {
+                shooterPower = 1;
+                state = AutoState.START;
+                runAutoShoot();
+                batteryVoltage = getBatteryVoltage();
+                shooterPower = calculateShooterPower(batteryVoltage);
+            }
+            if (gamepad1.b) {
+                TOP_KICKER_DOWN = 0.1;
+                TOP_KICKER_UP = 0.1;
+                TOP_KICKER_POSITION = TOP_KICKER_UP;
+                topKicker.setPosition(TOP_KICKER_POSITION);
+                batteryVoltage = getBatteryVoltage();
+                shooterPower = calculateShooterPower(batteryVoltage);
+                shooterPower = shooterPower - 0.05;
+                state = AutoState.START;
+                runAutoShoot();
+                TOP_KICKER_DOWN = 0.03;
+                TOP_KICKER_UP = 0.25;
+                TOP_KICKER_POSITION = TOP_KICKER_UP;
+                topKicker.setPosition(TOP_KICKER_POSITION);
+                
+            }
             
-            
+            //Shooter controls
             if (gamepad2.left_bumper) { 
                 belt.setPower(1);
             } else if (gamepad2.left_trigger > 0.1) { 
@@ -161,17 +185,16 @@ public class week3teleop  extends LinearOpMode {
             } else {
                 belt.setPower(0);
             }
-            if (gamepad2.right_trigger>0.1) {
-                shooterLeft.setPower(-0.2);
-                shooterRight.setPower(-0.2);
-            }
-            
 
+            //To reset the Top Kicker position if it was changed by DPAD
             if (gamepad2.b) {
-                TOP_KICKER_DOWN = 0.6;
-                TOP_KICKER_UP = 0.9;
+                TOP_KICKER_DOWN = 0.03;
+                TOP_KICKER_UP = 0.25;
                 TOP_KICKER_POSITION = TOP_KICKER_UP;
                 topKicker.setPosition(TOP_KICKER_POSITION);
+                kicker.setPosition(BOTTOM_KICKER_DOWN);
+                shooterPower = calculateShooterPower(batteryVoltage);
+                shooterPower = shooterPower;
             }
             
             //0.70 is good to shoot from very close - 16 inches
@@ -180,7 +203,7 @@ public class week3teleop  extends LinearOpMode {
 
             // DPAD UP – increase once per press
             if (gamepad2.dpad_up && !prevDpadUp) {
-                TOP_KICKER_POSITION = Math.min(0.9, TOP_KICKER_POSITION + 0.01);
+                TOP_KICKER_POSITION = Math.min(0.25, TOP_KICKER_POSITION + 0.01);
                 TOP_KICKER_DOWN = TOP_KICKER_POSITION;
                 TOP_KICKER_UP = TOP_KICKER_POSITION;
                 topKicker.setPosition(TOP_KICKER_POSITION);
@@ -188,7 +211,7 @@ public class week3teleop  extends LinearOpMode {
             
             // DPAD DOWN – decrease once per press
             if (gamepad2.dpad_down && !prevDpadDown) {
-                TOP_KICKER_POSITION = Math.max(0.6, TOP_KICKER_POSITION - 0.01);
+                TOP_KICKER_POSITION = Math.max(0.03, TOP_KICKER_POSITION - 0.01);
                 TOP_KICKER_DOWN = TOP_KICKER_POSITION;
                 TOP_KICKER_UP = TOP_KICKER_POSITION;
                 topKicker.setPosition(TOP_KICKER_POSITION);
@@ -206,6 +229,8 @@ public class week3teleop  extends LinearOpMode {
             }
             if (gamepad2.y) {
                 state = AutoState.START;
+                batteryVoltage = getBatteryVoltage();
+                shooterPower = calculateShooterPower(batteryVoltage);
                 runAutoShoot();
             }
             else if (gamepad2.right_bumper) {
@@ -214,7 +239,6 @@ public class week3teleop  extends LinearOpMode {
                 topKicker.setPosition(TOP_KICKER_DOWN);
                 sleep(1000);
                 kicker.setPosition(BOTTOM_KICKER_UP); // Example: Move to position 0
-                telemetry.addData("Servo Position", "Up Position");
                 sleep(KICK_BALL_TIME);
                 kicker.setPosition(BOTTOM_KICKER_DOWN);
                 topKicker.setPosition(TOP_KICKER_UP);
@@ -233,8 +257,9 @@ public class week3teleop  extends LinearOpMode {
             telemetry.addData("Back Right Power", backRightPower);
             telemetry.addData("Kicker Servo Position", kicker.getPosition());
             telemetry.addData("Ramp Servo Position", topKicker.getPosition());
-            telemetry.addData("Shooter Speed", shooterPower);
-            telemetry.addData("Battery", getBatteryVoltage());
+            telemetry.addData("State", state);
+            telemetry.addData("Shooter Power", shooterPower);
+            telemetry.addData("Battery Voltage", batteryVoltage);
             telemetry.update();
 
         }
@@ -318,48 +343,47 @@ public class week3teleop  extends LinearOpMode {
         return result;
     }
     
-    public double getShooterSpeedFromVoltage() {
-        double v = getBatteryVoltage();
+    private double calculateShooterPower(double voltage) {
+        double v = voltage;
 
-        if (v > 14.0) return 0.83;
-        if (v > 13.9) return 0.85;
-        if (v >= 13.5) return 0.865;
-        if (v >= 13.3) return 0.87;
-        if (v >= 13.2) return 0.88;
-        if (v >= 13.1) return 0.89;
-        if (v >= 13.0) return 0.90;
-        if (v >= 12.9) return 0.91;
-        if (v >= 12.7) return 0.92;
-        if (v > 12.5) return 0.94;
-        if (v >= 12.0) return 0.95;
-
-        return 1.0;
+        if (v >= 14.0) return 0.78;
+        else if (v >= 13.9) return 0.79;
+        else if (v >= 13.5) return 0.80;
+        else if (v >= 13.3) return 0.81;
+        else if (v >= 13.2) return 0.82;
+        else if (v >= 13.1) return 0.83;
+        else if (v >= 13.0) return 0.84;
+        else if (v >= 12.9) return 0.85;
+        else if (v >= 12.7) return 0.86;
+        else if (v >= 12.5) return 0.89;
+        else if (v >= 12.0) return 0.90;
+        else return 0.95;
     }
 
     
     
     // ---------------- AUTO SHOOT LOGIC ----------------
     void runAutoShoot() {
-        shooterPower = getShooterSpeedFromVoltage(); 
         while (opModeIsActive() && state != AutoState.DONE) {
             switch (state) {
                 case START:
                     shooterOn(shooterPower);
                     topKicker.setPosition(TOP_KICKER_DOWN);
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 300) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+300) {
                         state = AutoState.BALL1_KICK;
                         stateTimer.reset();
                     }
                     break;
                 case BALL1_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
                         state = AutoState.BALL2_FEED;
                         stateTimer.reset();
                     }
                     break;
 
                 case BALL2_FEED:
+                    // topKicker.setPosition(TOP_KICKER_UP);
                     beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff();
@@ -370,13 +394,14 @@ public class week3teleop  extends LinearOpMode {
 
                 case BALL2_KICK:
                     runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
                         state = AutoState.BALL3_FEED;
                         stateTimer.reset();
                     }
                     break;
 
                 case BALL3_FEED:
+                    // topKicker.setPosition(TOP_KICKER_UP);
                     intakeOn(1.0); beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff(); intakeOff();
@@ -393,11 +418,9 @@ public class week3teleop  extends LinearOpMode {
                         stateTimer.reset();
                     }
                     break;
+                case DONE:
+                    break;
             }
-            telemetry.addData("State", state);
-            telemetry.addData("Shooter Power", shooterPower);
-            telemetry.addData("Battery Voltage", batteryVoltage);        
-            telemetry.update();
         } //while
     }
 
