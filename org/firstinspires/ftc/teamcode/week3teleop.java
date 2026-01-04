@@ -32,7 +32,7 @@ public class week3teleop extends LinearOpMode {
     // ---------------- AUTO SHOOT ----------------
     ElapsedTime stateTimer = new ElapsedTime();
     private static final double BOTTOM_KICKER_DOWN = 0.75;
-    private static final double BOTTOM_KICKER_UP = 0.4;
+    private static final double BOTTOM_KICKER_UP = 0.40;
     private static final double TOP_KICKER_DOWN = 0.03;
     private static final double TOP_KICKER_UP = 0.28;
     private static int KICK_BALL_TIME = 1000;
@@ -175,11 +175,9 @@ public class week3teleop extends LinearOpMode {
                 stateTimer.reset();
                 state = AutoState.START;
                 runAutoShoot();
-                sleep(500);
                 topKickerDownPosition = TOP_KICKER_DOWN;
                 topKickerUpPosition = TOP_KICKER_UP;
                 topKicker.setPosition(topKickerUpPosition);
-                
             }
             
             //Shooter controls
