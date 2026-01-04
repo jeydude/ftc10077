@@ -13,7 +13,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.CRServo;
 
 @TeleOp(name="Qualifier Teleop", group="Linear Opmode")
-public class week3teleop  extends LinearOpMode {
+public class week3teleop extends LinearOpMode {
 
     // Declare OpMode members.
     private DcMotor frontLeft = null;
@@ -329,7 +329,7 @@ public class week3teleop  extends LinearOpMode {
             kicker.setPosition(BOTTOM_KICKER_DOWN);
             // beltOff();
         }
-        if (t >= KICK_BALL_TIME) 
+        if (t >= KICK_BALL_TIME) {
             topKicker.setPosition(TOP_KICKER_UP);
             // beltOff();
         }
