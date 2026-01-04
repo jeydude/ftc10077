@@ -230,7 +230,6 @@ public class week3teleop extends LinearOpMode {
             
             // ---------- AUTO SHOOT CONTROLS ----------
             if (gamepad2.x) {
-                stopAllShooter();
                 state = AutoState.DONE;
             }
             if (gamepad2.y) {
@@ -249,12 +248,10 @@ public class week3teleop extends LinearOpMode {
                 sleep(KICK_BALL_TIME);
                 kicker.setPosition(BOTTOM_KICKER_DOWN);
                 topKicker.setPosition(topKickerUpPosition);
-            }
-            else {
                 shooterLeft.setPower(0);
                 shooterRight.setPower(0);
             }
-            
+
             
             // Telemetry for debugging (optional)
             telemetry.addData("Status", "Running");
@@ -394,13 +391,13 @@ public class week3teleop extends LinearOpMode {
                     break;
                 case BALL1_FEED:
                     topKicker.setPosition(topKickerUpPosition);
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME-500) {
-                        beltOn(0.8);
-                    }
-                    else if (stateTimer.milliseconds() > KICK_BALL_TIME-200) {
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME - 200) {
                         beltOff();
                         state = AutoState.BALL1_KICK;
                         stateTimer.reset();
+                    }
+                    else if (stateTimer.milliseconds() > KICK_BALL_TIME - 500) {
+                        beltOn(0.8);
                     }
                     break;
                 case BALL1_KICK:
@@ -464,6 +461,7 @@ public class week3teleop extends LinearOpMode {
                     }
                     break;
                 case DONE:
+                    stopAllShooter();
                     break;
             }
         } //while
