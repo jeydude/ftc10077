@@ -81,8 +81,8 @@ public class AutoQualifierRed extends LinearOpMode {
     private static double TOP_KICKER_DOWN = 0.03;
     private static double TOP_KICKER_UP = 0.25;
     
-    private static final int KICK_BALL_TIME = 900;
-    private static final int IS_RED = 1;
+    private static final int KICK_BALL_TIME = 1000;
+    private static final int IS_RED = 1; 
     private double shooterPower = 1.0; // full power
     private double batteryVoltage = 12.0; // full power
 
@@ -490,7 +490,7 @@ public class AutoQualifierRed extends LinearOpMode {
     private void beltOn(double power) { belt.setPower(power); }
     private void beltOff() { belt.setPower(0);}
     private void shooterOn(double power) {
-        shooterLeft.setPower(power);
+        shooterLeft.setPower(power-0.1);
         shooterRight.setPower(power);
     }
     private void shooterOff() {
@@ -502,12 +502,19 @@ public class AutoQualifierRed extends LinearOpMode {
      * Moves the servo up/down to kick one ball,
      * then returns it to the rest position.
      */
+    
     private void runKicker() {
         double t = stateTimer.milliseconds();
         topKicker.setPosition(TOP_KICKER_DOWN);
-        if (t >= 250) { kicker.setPosition(BOTTOM_KICKER_UP); }
-        if (t >= KICK_BALL_TIME) {
+        if (t >= 300) {
+            // beltOn(0.7);
+            kicker.setPosition(BOTTOM_KICKER_UP);
+        }
+        if (t >= KICK_BALL_TIME - 200) {
             kicker.setPosition(BOTTOM_KICKER_DOWN);
+            // beltOff();
+        }
+        if (t >= KICK_BALL_TIME) {
             topKicker.setPosition(TOP_KICKER_UP);
         }
     }
@@ -521,10 +528,8 @@ public class AutoQualifierRed extends LinearOpMode {
         }
         return voltage;
     }
-
     private double calculateShooterPower(double voltage) {
         double v = voltage;
-
         if (v >= 14.0) return 0.78;
         else if (v >= 13.9) return 0.80;
         else if (v >= 13.5) return 0.82;
@@ -535,8 +540,8 @@ public class AutoQualifierRed extends LinearOpMode {
         else if (v >= 12.9) return 0.87;
         else if (v >= 12.7) return 0.88;
         else if (v >= 12.5) return 0.90;
+        else if (v >= 12.3) return 0.91;
         else if (v >= 12.0) return 0.92;
         else return 0.95;
     }
-
 }

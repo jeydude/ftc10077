@@ -43,6 +43,7 @@ public class week3teleop extends LinearOpMode {
 
     private enum AutoState {
         START,
+        ADJUST_BALL1,
         BALL1_FEED,
         BALL1_KICK,
         BALL2_FEED,
@@ -167,11 +168,9 @@ public class week3teleop extends LinearOpMode {
             }
             if (gamepad1.y) {
                 topKickerDownPosition = 0.05;
-                topKickerUpPosition = 0.05;
-                topKicker.setPosition(topKickerUpPosition);
                 batteryVoltage = getBatteryVoltage();
                 shooterPower = calculateShooterPower(batteryVoltage);
-                shooterPower = shooterPower-TOP_KICKER_DOWN;
+                shooterPower = shooterPower-0.01;
                 stateTimer.reset();
                 state = AutoState.START;
                 runAutoShoot();
@@ -238,16 +237,14 @@ public class week3teleop extends LinearOpMode {
                 runAutoShoot();
             }
             else if (gamepad2.right_bumper) {
-                shooterLeft.setPower(shooterPower);
-                shooterRight.setPower(shooterPower);
+                shooterOn(shooterPower);
                 topKicker.setPosition(topKickerDownPosition);
                 sleep(1000);
                 kicker.setPosition(BOTTOM_KICKER_UP); // Example: Move to position 0
                 sleep(KICK_BALL_TIME);
                 kicker.setPosition(BOTTOM_KICKER_DOWN);
                 topKicker.setPosition(topKickerUpPosition);
-                shooterLeft.setPower(0);
-                shooterRight.setPower(0);
+                shooterOff();
             }
 
             
@@ -299,7 +296,7 @@ public class week3teleop extends LinearOpMode {
     * Spins up both shooter motors
     */
     private void shooterOn(double power) {
-        shooterLeft.setPower(power);
+        shooterLeft.setPower(power-0.1);
         shooterRight.setPower(power);
     }
 
@@ -311,28 +308,6 @@ public class week3teleop extends LinearOpMode {
         shooterRight.setPower(0);
     }
 
-    /*
-     * Moves the servo up/down to kick one ball,
-     * then returns it to the rest position.
-     */
-    private void runKicker() {
-        double t = stateTimer.milliseconds();
-        topKicker.setPosition(topKickerDownPosition);
-        if (t >= 300) {
-            // beltOn(0.7);
-            kicker.setPosition(BOTTOM_KICKER_UP);
-        }
-        if (t >= KICK_BALL_TIME - 200) {
-            kicker.setPosition(BOTTOM_KICKER_DOWN);
-            // beltOff();
-        }
-        if (t >= KICK_BALL_TIME) {
-            topKicker.setPosition(topKickerUpPosition);
-            // beltOff();
-        }
-    }
-
-    
      /**
      * Returns the minimum voltage reported by any voltage sensor on the hardware map.
      * @return The lowest voltage reported.
@@ -383,19 +358,23 @@ public class week3teleop extends LinearOpMode {
                     topKicker.setPosition(topKickerDownPosition);
                     shooterOn(shooterPower);
                     if (stateTimer.milliseconds() >  KICK_BALL_TIME-500) {
+                        state = AutoState.ADJUST_BALL1;
+                        stateTimer.reset();
+                    }
+                    break;
+                case ADJUST_BALL1:
+                    topKicker.setPosition(topKickerUpPosition-0.03);
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME - 500) {
                         state = AutoState.BALL1_FEED;
                         stateTimer.reset();
                     }
                     break;
                 case BALL1_FEED:
-                    topKicker.setPosition(topKickerUpPosition);
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME - 200) {
+                    beltOn(0.5);
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME - 500) {
                         beltOff();
                         state = AutoState.BALL1_KICK;
                         stateTimer.reset();
-                    }
-                    else if (stateTimer.milliseconds() > KICK_BALL_TIME - 500) {
-                        beltOn(0.8);
                     }
                     break;
                 case BALL1_KICK:
@@ -465,9 +444,29 @@ public class week3teleop extends LinearOpMode {
         } //while
     }
 
+    /*
+     * Moves the servo up/down to kick one ball,
+     * then returns it to the rest position.
+     */
+    private void runKicker() {
+        double t = stateTimer.milliseconds();
+        topKicker.setPosition(topKickerDownPosition);
+        if (t >= 300) {
+            // beltOn(0.7);
+            kicker.setPosition(BOTTOM_KICKER_UP);
+        }
+        if (t >= KICK_BALL_TIME - 200) {
+            kicker.setPosition(BOTTOM_KICKER_DOWN);
+            // beltOff();
+        }
+        if (t >= KICK_BALL_TIME) {
+            topKicker.setPosition(topKickerUpPosition);
+            // beltOff();
+        }
+    }
+    
     void stopAllShooter() {
-        shooterLeft.setPower(0);
-        shooterRight.setPower(0);
+        shooterOff();
         belt.setPower(0);
         intake.setPower(0);
         kicker.setPosition(BOTTOM_KICKER_DOWN);

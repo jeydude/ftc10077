@@ -22,7 +22,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *  - Encoder-based movement
  *  - Motor braking when stopped
  */
-@Autonomous(name = "QualifierFrontBlue", group = "Drive")
+@Autonomous(name = "FrontBlue", group = "Drive")
 public class AutoFrontBlue extends LinearOpMode {
 
     // Drive motors
@@ -50,6 +50,7 @@ public class AutoFrontBlue extends LinearOpMode {
         DRIVE_BACK_TO_SHOOT,
         TURN_BACK_TO_SHOOT,
         MOVE_BACK_TO_SHOOT,
+        BALL4_FEED,
         BALL4_KICK,
         BALL5_FEED,
         BALL5_KICK,
@@ -78,11 +79,11 @@ public class AutoFrontBlue extends LinearOpMode {
 
     // Kicker servo positions (TUNE ON ROBOT)
     private static final double BOTTOM_KICKER_DOWN = 0.75;
-    private static final double BOTTOM_KICKER_UP = 0.4;
-    private static double TOP_KICKER_DOWN = 0.03;
-    private static double TOP_KICKER_UP = 0.25;
+    private static final double BOTTOM_KICKER_UP = 0.40;
+    private static final double TOP_KICKER_DOWN = 0.03;
+    private static final double TOP_KICKER_UP = 0.27;
     
-    private static final int KICK_BALL_TIME = 900;
+    private static final int KICK_BALL_TIME = 1000;
     private static final int IS_BLUE = 1;
     private double shooterPower = 1.0; // full power
     private double batteryVoltage = 12.0; // full power
@@ -238,8 +239,8 @@ public class AutoFrontBlue extends LinearOpMode {
                     break;
 
                 case ADJUST_BALLS:
-                    topKicker.setPosition(TOP_KICKER_UP);
-                    if (stateTimer.milliseconds() > 150) {
+                    topKicker.setPosition(TOP_KICKER_UP-0.03);
+                    if (stateTimer.milliseconds() > 500) {
                         state = AutoState.DRIVE_BACK_TO_SHOOT;
                         stateTimer.reset();
                     }
@@ -278,6 +279,14 @@ public class AutoFrontBlue extends LinearOpMode {
                     if (driveCompleted()) {
                         stopDrive();
                         moveStarted = false;
+                        state = AutoState.BALL4_FEED;
+                        stateTimer.reset();
+                    }
+                    break;
+                case BALL4_FEED:
+                    beltOn(0.5);
+                    if (stateTimer.milliseconds() > KICK_BALL_TIME - 500) {
+                        beltOff();
                         state = AutoState.BALL4_KICK;
                         stateTimer.reset();
                     }
@@ -512,7 +521,7 @@ public class AutoFrontBlue extends LinearOpMode {
     private void beltOn(double power) { belt.setPower(power); }
     private void beltOff() { belt.setPower(0);}
     private void shooterOn(double power) {
-        shooterLeft.setPower(power);
+        shooterLeft.setPower(power-0.1);
         shooterRight.setPower(power);
     }
     private void shooterOff() {
@@ -527,9 +536,15 @@ public class AutoFrontBlue extends LinearOpMode {
     private void runKicker() {
         double t = stateTimer.milliseconds();
         topKicker.setPosition(TOP_KICKER_DOWN);
-        if (t >= 250) { kicker.setPosition(BOTTOM_KICKER_UP); }
-        if (t >= KICK_BALL_TIME) {
+        if (t >= 300) {
+            // beltOn(0.7);
+            kicker.setPosition(BOTTOM_KICKER_UP);
+        }
+        if (t >= KICK_BALL_TIME - 200) {
             kicker.setPosition(BOTTOM_KICKER_DOWN);
+            // beltOff();
+        }
+        if (t >= KICK_BALL_TIME) {
             topKicker.setPosition(TOP_KICKER_UP);
         }
     }
@@ -546,7 +561,10 @@ public class AutoFrontBlue extends LinearOpMode {
 
     private double calculateShooterPower(double voltage) {
         double v = voltage;
-        return 0.98;
+        if (v >= 14.0) return 0.97;
+        else if (v >= 13.5) return 0.98;
+        else if (v >= 13) return 0.99;
+        else return 1.0;
     }
 
 }
