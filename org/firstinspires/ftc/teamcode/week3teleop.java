@@ -116,7 +116,6 @@ public class week3teleop extends LinearOpMode {
                 stateTimer.reset();
                 state = AutoState.START;
                 runAutoShoot();
-                shooterPower = calculateShooterPower(batteryVoltage);
             }
 
             //To shoot from closure range
@@ -128,9 +127,6 @@ public class week3teleop extends LinearOpMode {
                 stateTimer.reset();
                 state = AutoState.START;
                 runAutoShoot();
-                topKickerDownPosition = TOP_KICKER_DOWN;
-                topKickerUpPosition = TOP_KICKER_UP;
-                topKicker.setPosition(topKickerUpPosition);
             }
             
             //Shooter controls
@@ -148,8 +144,6 @@ public class week3teleop extends LinearOpMode {
                 topKickerUpPosition = TOP_KICKER_UP;
                 topKicker.setPosition(topKickerUpPosition);
                 kicker.setPosition(BOTTOM_KICKER_DOWN);
-                shooterPower = calculateShooterPower(batteryVoltage);
-                shooterPower = shooterPower;
             }
             
             // DPAD UP – increase once per press
@@ -191,7 +185,7 @@ public class week3teleop extends LinearOpMode {
             else if (gamepad2.right_bumper && state == AutoState.DONE) {
                 shooterOn(shooterPower);
                 topKicker.setPosition(topKickerDownPosition);
-                sleep(1000);
+                sleep(KICK_BALL_TIME);
                 kicker.setPosition(BOTTOM_KICKER_UP); // Example: Move to position 0
                 sleep(KICK_BALL_TIME);
                 kicker.setPosition(BOTTOM_KICKER_DOWN);
