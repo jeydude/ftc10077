@@ -36,6 +36,7 @@ public class AutoQualifierRed extends LinearOpMode {
     private enum AutoState {
         START,
         BALL1_KICK,
+        PAUSE_AFTER_BALL1,
         BALL2_FEED,
         BALL2_KICK,
         BALL3_FEED,
@@ -50,6 +51,7 @@ public class AutoQualifierRed extends LinearOpMode {
         TURN_BACK_TO_SHOOT,
 
         BALL4_KICK,
+        PAUSE_AFTER_BALL4,
         BALL5_FEED,
         BALL5_KICK,
         BALL6_FEED,
@@ -131,6 +133,12 @@ public class AutoQualifierRed extends LinearOpMode {
                 case BALL1_KICK:
                     runKicker();
                     if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
+                        state = AutoState.PAUSE_AFTER_BALL1;
+                        stateTimer.reset();
+                    }
+                    break;
+                case PAUSE_AFTER_BALL1:
+                    if (stateTimer.milliseconds() > 300) {
                         state = AutoState.BALL2_FEED;
                         stateTimer.reset();
                     }
@@ -263,6 +271,12 @@ public class AutoQualifierRed extends LinearOpMode {
                 case BALL4_KICK:
                     runKicker();
                     if (stateTimer.milliseconds() > KICK_BALL_TIME + 200) {
+                        state = AutoState.PAUSE_AFTER_BALL4;
+                        stateTimer.reset();
+                    }
+                    break;
+                case PAUSE_AFTER_BALL4:
+                    if (stateTimer.milliseconds() > 300) {
                         state = AutoState.BALL5_FEED;
                         stateTimer.reset();
                     }
@@ -314,6 +328,7 @@ public class AutoQualifierRed extends LinearOpMode {
                     if (driveCompleted()) {
                         moveStarted = false;
                         stopDrive();
+                        stopAll();
                         state = AutoState.DONE;
                         stateTimer.reset();
                     }
@@ -488,7 +503,7 @@ public class AutoQualifierRed extends LinearOpMode {
     private void intakeOn(double power) {intake.setPower(power); }
     private void intakeOff() {intake.setPower(0);}
     private void beltOn(double power) { belt.setPower(power); }
-    private void beltOff() { belt.setPower(0);}
+    private void beltOff() { belt.setPower(0); }
     private void shooterOn(double power) {
         shooterLeft.setPower(power-0.1);
         shooterRight.setPower(power);
@@ -543,5 +558,13 @@ public class AutoQualifierRed extends LinearOpMode {
         else if (v >= 12.3) return 0.91;
         else if (v >= 12.0) return 0.92;
         else return 0.95;
+    }
+    
+    void stopAll() {
+        shooterOff();
+        beltOff();
+        intakeOff();
+        kicker.setPosition(BOTTOM_KICKER_DOWN);
+        topKicker.setPosition(TOP_KICKER_UP);
     }
 }

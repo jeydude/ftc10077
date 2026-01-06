@@ -16,16 +16,9 @@ import com.qualcomm.robotcore.hardware.CRServo;
 public class week3teleop extends LinearOpMode {
 
     // Declare OpMode members.
-    private DcMotor frontLeft = null;
-    private DcMotor frontRight = null;
-    private DcMotor backLeft = null;
-    private DcMotor backRight = null;
-    private DcMotor intake = null;
-    private DcMotor shooterLeft = null;
-    private DcMotor shooterRight = null;
-    private DcMotor belt = null;
-    private Servo kicker = null;
-    private Servo topKicker = null;
+    private DcMotor frontLeft, frontRight, backLeft , backRight;
+    private DcMotor intake, shooterLeft, shooterRight, belt;
+    private Servo kicker, topKicker;
 
     private double shooterPower = 0.88;
     private double batteryVoltage = 12.5; // full power
@@ -46,6 +39,7 @@ public class week3teleop extends LinearOpMode {
         ADJUST_BALL1,
         BALL1_FEED,
         BALL1_KICK,
+        PAUSE_AFTER_BALL1,
         BALL2_FEED,
         BALL2_KICK,
         BALL3_FEED,
@@ -63,48 +57,12 @@ public class week3teleop extends LinearOpMode {
         telemetry.update();
 
         // Initialize the hardware variables.
-        frontLeft  = hardwareMap.get(DcMotor.class, "leftfront");
-        frontRight = hardwareMap.get(DcMotor.class, "rightfront");
-        backLeft  = hardwareMap.get(DcMotor.class, "leftrear");
-        backRight = hardwareMap.get(DcMotor.class, "rightrear");
-        intake = hardwareMap.get(DcMotor.class, "frontintake");
-        shooterLeft = hardwareMap.get(DcMotor.class, "leftshooter");
-        shooterRight = hardwareMap.get(DcMotor.class, "rightshooter");
-        belt = hardwareMap.get(DcMotor.class, "belt");
-        // Initialize the servo from the hardware map
-        kicker = hardwareMap.get(Servo.class, "ballkicker"); 
-        topKicker = hardwareMap.get(Servo.class, "topkicker"); 
-
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);//reverse
-        backLeft.setDirection(DcMotor.Direction.FORWARD);//forward
-        frontRight.setDirection(DcMotor.Direction.FORWARD);//forward
-        backRight.setDirection(DcMotor.Direction.REVERSE);//reverse
-        intake.setDirection(DcMotor.Direction.FORWARD);
-        shooterLeft.setDirection(DcMotor.Direction.REVERSE);
-        shooterRight.setDirection(DcMotor.Direction.FORWARD);
-        
-        // Set all motors to run without encoders for simpler teleop control.
-        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooterLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shooterRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        
-        // Set all motors to brake mode
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        shooterLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        shooterRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        initDrive(hardwareMap);
         
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
-        // Run until the end of the match (driver presses STOP)
+        // Run until the end of the match
         while (opModeIsActive()) {
             
             // Get joystick inputs
@@ -146,18 +104,13 @@ public class week3teleop extends LinearOpMode {
                 intake.setPower(0.0);
             }
             //manage the shoot speed based on the dpad button pressed
-            if (gamepad1.dpad_up) {
-                shooterPower=1;
-            }
-            if (gamepad1.dpad_right) {
-                shooterPower=0.9;
-            }
-            if (gamepad1.dpad_down) {
-                shooterPower=0.85;
-            }
-            if (gamepad1.dpad_left) {
-                shooterPower=0.8;
-            }
+            if (gamepad1.dpad_up) { shooterPower=1;}
+            if (gamepad1.dpad_right) {shooterPower=0.9;}
+            if (gamepad1.dpad_down) {shooterPower=0.85;}
+            if (gamepad1.dpad_left) {shooterPower=0.8;}
+            // ---------- AUTO FRONT SHOOT CONTROLS ----------
+
+            //To shoot from the front shooting line
             if (gamepad1.x) {
                 batteryVoltage = getBatteryVoltage();
                 shooterPower = calculateFrontShooterPower(batteryVoltage);
@@ -166,6 +119,8 @@ public class week3teleop extends LinearOpMode {
                 runAutoShoot();
                 shooterPower = calculateShooterPower(batteryVoltage);
             }
+
+            //To shoot from closure range
             if (gamepad1.y) {
                 topKickerDownPosition = 0.05;
                 batteryVoltage = getBatteryVoltage();
@@ -198,10 +153,6 @@ public class week3teleop extends LinearOpMode {
                 shooterPower = shooterPower;
             }
             
-            //0.70 is good to shoot from very close - 16 inches
-            
-            //0.68 is good to shoot from closure - 32 inches
-
             // DPAD UP – increase once per press
             if (gamepad2.dpad_up && !prevDpadUp) {
                 double TOP_KICKER_POSITION = topKicker.getPosition();
@@ -229,6 +180,8 @@ public class week3teleop extends LinearOpMode {
             if (gamepad2.x) {
                 state = AutoState.DONE;
             }
+
+            //To shoot from the back middle shooting line
             if (gamepad2.y) {
                 batteryVoltage = getBatteryVoltage();
                 shooterPower = calculateShooterPower(batteryVoltage);
@@ -263,55 +216,61 @@ public class week3teleop extends LinearOpMode {
 
         }
     }
+
+    private void initDrive(HardwareMap hw) {
+        // Initialize the hardware variables.
+        frontLeft  = hardwareMap.get(DcMotor.class, "leftfront");
+        frontRight = hardwareMap.get(DcMotor.class, "rightfront");
+        backLeft  = hardwareMap.get(DcMotor.class, "leftrear");
+        backRight = hardwareMap.get(DcMotor.class, "rightrear");
+        intake = hardwareMap.get(DcMotor.class, "frontintake");
+        shooterLeft = hardwareMap.get(DcMotor.class, "leftshooter");
+        shooterRight = hardwareMap.get(DcMotor.class, "rightshooter");
+        belt = hardwareMap.get(DcMotor.class, "belt");
+        // Initialize the servo from the hardware map
+        kicker = hardwareMap.get(Servo.class, "ballkicker"); 
+        topKicker = hardwareMap.get(Servo.class, "topkicker"); 
+
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);//reverse
+        backLeft.setDirection(DcMotor.Direction.FORWARD);//forward
+        frontRight.setDirection(DcMotor.Direction.FORWARD);//forward
+        backRight.setDirection(DcMotor.Direction.REVERSE);//reverse
+        intake.setDirection(DcMotor.Direction.FORWARD);
+        shooterLeft.setDirection(DcMotor.Direction.REVERSE);
+        shooterRight.setDirection(DcMotor.Direction.FORWARD);
+        
+        // Set all motors to run without encoders for simpler teleop control.
+        frontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooterRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        
+        // Set all motors to brake mode
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        shooterLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        shooterRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);        
+    }
     
-    /*
-    * Runs the intake to collect a ball
-    */
-    private void intakeOn(double power) {
-        intake.setPower(power);
-    }
-
-    /*
-    * Stops the intake motor
-    */
-    private void intakeOff() {
-        intake.setPower(0);
-    }
-
-    /*
-    * Runs belt forward to feed ball into shooter
-    */
-    private void beltOn(double power) {
-        belt.setPower(power);
-    }
-
-    /*
-    * Stops the belt motor
-    */
-    private void beltOff() {
-        belt.setPower(0);
-    }
-
-    /*
-    * Spins up both shooter motors
-    */
+    private void intakeOn(double power) {intake.setPower(power); }
+    private void intakeOff() {intake.setPower(0);}
+    private void beltOn(double power) { belt.setPower(power); }
+    private void beltOff() { belt.setPower(0); }
     private void shooterOn(double power) {
         shooterLeft.setPower(power-0.1);
         shooterRight.setPower(power);
     }
-
-    /*
-    * Stops shooter motors
-    */
     private void shooterOff() {
         shooterLeft.setPower(0);
         shooterRight.setPower(0);
     }
 
-     /**
-     * Returns the minimum voltage reported by any voltage sensor on the hardware map.
-     * @return The lowest voltage reported.
-     */
     public double getBatteryVoltage() {
         double result = Double.POSITIVE_INFINITY;
         // Loop through all voltage sensors on the hardware map
@@ -380,13 +339,17 @@ public class week3teleop extends LinearOpMode {
                 case BALL1_KICK:
                     runKicker();
                     if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                        state = AutoState.PAUSE_AFTER_BALL1;
+                        stateTimer.reset();
+                    }
+                    break;
+                case PAUSE_AFTER_BALL1:
+                    if (stateTimer.milliseconds() > 300) {
                         state = AutoState.BALL2_FEED;
                         stateTimer.reset();
                     }
                     break;
-
                 case BALL2_FEED:
-                    // topKicker.setPosition(topKickerUpPosition);
                     beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff();
@@ -404,7 +367,6 @@ public class week3teleop extends LinearOpMode {
                     break;
 
                 case BALL3_FEED:
-                    // topKicker.setPosition(topKickerUpPosition);
                     intakeOn(1.0); beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff(); intakeOff();
@@ -421,7 +383,6 @@ public class week3teleop extends LinearOpMode {
                     }
                     break;
                 case BALL4_FEED:
-                    // topKicker.setPosition(topKickerUpPosition);
                     intakeOn(1.0); beltOn(0.8);
                     if (stateTimer.milliseconds() > 1000) {
                         beltOff(); intakeOff();
@@ -438,7 +399,7 @@ public class week3teleop extends LinearOpMode {
                     }
                     break;
                 case DONE:
-                    stopAllShooter();
+                    stopAll();
                     break;
             }
         } //while
@@ -465,10 +426,10 @@ public class week3teleop extends LinearOpMode {
         }
     }
     
-    void stopAllShooter() {
+    void stopAll() {
         shooterOff();
-        belt.setPower(0);
-        intake.setPower(0);
+        beltOff();
+        intakeOff();
         kicker.setPosition(BOTTOM_KICKER_DOWN);
         topKicker.setPosition(topKickerUpPosition);
     }
