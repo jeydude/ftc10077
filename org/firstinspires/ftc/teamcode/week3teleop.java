@@ -172,6 +172,7 @@ public class week3teleop extends LinearOpMode {
             // ---------- AUTO SHOOT CONTROLS ----------
             if (gamepad2.x) {
                 state = AutoState.DONE;
+                stopAll();
             }
 
             //To shoot from the back middle shooting line
