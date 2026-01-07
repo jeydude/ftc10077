@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -25,7 +26,7 @@ public class week3teleop extends LinearOpMode {
     private static final double BOTTOM_KICKER_DOWN = 0.75;
     private static final double BOTTOM_KICKER_UP = 0.40;
     private static final double TOP_KICKER_DOWN = 0.03;
-    private static final double TOP_KICKER_UP = 0.28;
+    private static final double TOP_KICKER_UP = 0.30;
     private static int KICK_BALL_TIME = 1000;
     private double topKickerDownPosition = TOP_KICKER_DOWN;
     private double topKickerUpPosition = TOP_KICKER_UP;
@@ -40,6 +41,7 @@ public class week3teleop extends LinearOpMode {
         PAUSE_AFTER_BALL1,
         BALL2_FEED,
         BALL2_KICK,
+        PAUSE_AFTER_BALL2,
         BALL3_FEED,
         BALL3_KICK,
         BALL4_FEED,
@@ -115,7 +117,7 @@ public class week3teleop extends LinearOpMode {
                 shooterPower = calculateFrontShooterPower(batteryVoltage);
                 stateTimer.reset();
                 state = AutoState.START;
-                runAutoShoot();
+                // runAutoShoot();
             }
 
             //To shoot from closure range
@@ -126,7 +128,7 @@ public class week3teleop extends LinearOpMode {
                 shooterPower = shooterPower-0.01;
                 stateTimer.reset();
                 state = AutoState.START;
-                runAutoShoot();
+                // runAutoShoot();
             }
             
             //Shooter controls
@@ -181,7 +183,7 @@ public class week3teleop extends LinearOpMode {
                 shooterPower = calculateShooterPower(batteryVoltage);
                 stateTimer.reset();
                 state = AutoState.START;
-                runAutoShoot();
+                // runAutoShoot();
             }
             else if (gamepad2.right_bumper && state == AutoState.DONE) {
                 shooterOn(shooterPower);
@@ -194,7 +196,11 @@ public class week3teleop extends LinearOpMode {
                 shooterOff();
             }
 
-            
+            // Continue running auto shoot if in progress
+            if (state != AutoState.DONE) {
+                runAutoShoot();
+            }   
+                     
             // Telemetry for debugging (optional)
             telemetry.addData("Status", "Running");
             telemetry.addData("Front Left Power", frontLeftPower);
@@ -305,101 +311,112 @@ public class week3teleop extends LinearOpMode {
     
     // ---------------- AUTO SHOOT LOGIC ----------------
     void runAutoShoot() {
-        while (opModeIsActive() && state != AutoState.DONE) {
-            switch (state) {
-                case START:
-                    topKicker.setPosition(topKickerDownPosition);
-                    shooterOn(shooterPower);
-                    if (stateTimer.milliseconds() >  500) {
-                        state = AutoState.ADJUST_BALL1;
-                        stateTimer.reset();
-                    }
-                    break;
-                case ADJUST_BALL1:
-                    topKicker.setPosition(topKickerUpPosition-0.03);
-                    if (stateTimer.milliseconds() > 500) {
-                        state = AutoState.BALL1_FEED;
-                        stateTimer.reset();
-                    }
-                    break;
-                case BALL1_FEED:
-                    beltOn(0.5);
-                    if (stateTimer.milliseconds() > 500) {
-                        beltOff();
-                        state = AutoState.BALL1_KICK;
-                        stateTimer.reset();
-                    }
-                    break;
-                case BALL1_KICK:
-                    runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
-                        state = AutoState.PAUSE_AFTER_BALL1;
-                        stateTimer.reset();
-                    }
-                    break;
-                case PAUSE_AFTER_BALL1:
-                    if (stateTimer.milliseconds() > 300) {
-                        state = AutoState.BALL2_FEED;
-                        stateTimer.reset();
-                    }
-                    break;
-                case BALL2_FEED:
-                    beltOn(0.8);
-                    if (stateTimer.milliseconds() > 1000) {
-                        beltOff();
-                        state = AutoState.BALL2_KICK;
-                        stateTimer.reset();
-                    }
-                    break;
+        if (state == AutoState.DONE) {
+            return; // Already done
+        }
+        switch (state) {
+            case START:
+                topKicker.setPosition(topKickerDownPosition);
+                shooterOn(shooterPower);
+                if (stateTimer.milliseconds() >  500) {
+                    state = AutoState.ADJUST_BALL1;
+                    stateTimer.reset();
+                }
+                break;
+            case ADJUST_BALL1:
+                topKicker.setPosition(topKickerUpPosition-0.03);
+                if (stateTimer.milliseconds() > 500) {
+                    state = AutoState.BALL1_FEED;
+                    stateTimer.reset();
+                }
+                break;
+            case BALL1_FEED:
+                beltOn(0.8);
+                if (stateTimer.milliseconds() > 500) {
+                    beltOff();
+                    state = AutoState.BALL1_KICK;
+                    stateTimer.reset();
+                }
+                break;
+            case BALL1_KICK:
+                runKicker();
+                if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                    state = AutoState.PAUSE_AFTER_BALL1;
+                    stateTimer.reset();
+                }
+                break;
+            case PAUSE_AFTER_BALL1:
+                topKicker.setPosition(topKickerUpPosition-0.03);
+                beltOn(0.9);
+                if (stateTimer.milliseconds() > 400) {
+                    state = AutoState.BALL2_FEED;
+                    stateTimer.reset();
+                }
+                break;
+            case BALL2_FEED:
+                beltOn(0.9);
+                if (stateTimer.milliseconds() > 1200) {
+                    beltOff();
+                    state = AutoState.BALL2_KICK;
+                    stateTimer.reset();
+                }
+                break;
 
-                case BALL2_KICK:
-                    runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
-                        state = AutoState.BALL3_FEED;
-                        stateTimer.reset();
-                    }
-                    break;
+            case BALL2_KICK:
+                runKicker();
+                if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                    state = AutoState.BALL3_FEED;
+                    stateTimer.reset();
+                }
+                break;
+            case PAUSE_AFTER_BALL2:
+                topKicker.setPosition(topKickerUpPosition-0.03);
+                beltOn(0.9);
+                intakeOn(1.0);
+                if (stateTimer.milliseconds() > 500) {
+                    state = AutoState.BALL3_FEED;
+                    stateTimer.reset();
+                }
+                break;
+            case BALL3_FEED:
+                intakeOn(1.0); beltOn(1.0);
+                if (stateTimer.milliseconds() > 1300) {
+                    beltOff(); intakeOff();
+                    state = AutoState.BALL3_KICK;
+                    stateTimer.reset();
+                }
+                break;
 
-                case BALL3_FEED:
-                    intakeOn(1.0); beltOn(0.8);
-                    if (stateTimer.milliseconds() > 1000) {
-                        beltOff(); intakeOff();
-                        state = AutoState.BALL3_KICK;
-                        stateTimer.reset();
-                    }
-                    break;
-
-                case BALL3_KICK:
-                    runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
-                        state = AutoState.BALL4_FEED;
-                        stateTimer.reset();
-                    }
-                    break;
-                case BALL4_FEED:
-                    intakeOn(1.0); beltOn(0.8);
-                    if (stateTimer.milliseconds() > 1000) {
-                        beltOff(); intakeOff();
-                        state = AutoState.BALL4_KICK;
-                        stateTimer.reset();
-                    }
-                    break;
-                case BALL4_KICK:
-                    runKicker();
-                    if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
-                        shooterOff();
-                        state = AutoState.STOP;
-                        stateTimer.reset();
-                    }
-                    break;
-                case STOP:
-                    stopAll();
-                    state = AutoState.DONE;
-                    break;                    
-                case DONE:                  
-                    break;
-            }
-        } //while
+            case BALL3_KICK:
+                runKicker();
+                if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                    state = AutoState.BALL4_FEED;
+                    stateTimer.reset();
+                }
+                break;
+            case BALL4_FEED:
+                intakeOn(1.0); beltOn(0.8);
+                if (stateTimer.milliseconds() > 1000) {
+                    beltOff(); intakeOff();
+                    state = AutoState.BALL4_KICK;
+                    stateTimer.reset();
+                }
+                break;
+            case BALL4_KICK:
+                runKicker();
+                if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                    shooterOff();
+                    state = AutoState.STOP;
+                    stateTimer.reset();
+                }
+                break;
+            case STOP:
+                stopAll();
+                state = AutoState.DONE;
+                break;                    
+            case DONE:                  
+                break;
+        }
     }
 
     /*
