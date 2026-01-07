@@ -325,37 +325,40 @@ public class week3teleop extends LinearOpMode {
                 break;
             case ADJUST_BALL1:
                 topKicker.setPosition(topKickerUpPosition-0.03);
-                if (stateTimer.milliseconds() > 500) {
+                if (stateTimer.milliseconds() > 300) {
                     state = AutoState.BALL1_FEED;
                     stateTimer.reset();
                 }
                 break;
             case BALL1_FEED:
                 beltOn(0.8);
-                if (stateTimer.milliseconds() > 500) {
+                if (stateTimer.milliseconds() > 400) {
                     beltOff();
                     state = AutoState.BALL1_KICK;
                     stateTimer.reset();
                 }
                 break;
             case BALL1_KICK:
+                beltOff();
                 runKicker();
-                if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                if (stateTimer.milliseconds() > KICK_BALL_TIME) {
+                    // topKicker.setPosition(topKickerUpPosition-0.03);
                     state = AutoState.PAUSE_AFTER_BALL1;
                     stateTimer.reset();
                 }
                 break;
             case PAUSE_AFTER_BALL1:
                 topKicker.setPosition(topKickerUpPosition-0.03);
-                beltOn(0.9);
-                if (stateTimer.milliseconds() > 400) {
+                // beltOn(0.9);
+                if (stateTimer.milliseconds() > 300) {
                     state = AutoState.BALL2_FEED;
                     stateTimer.reset();
                 }
                 break;
             case BALL2_FEED:
                 beltOn(0.9);
-                if (stateTimer.milliseconds() > 1200) {
+                shooterOn(shooterPower + 0.02); // slight increase to maintain speed
+                if (stateTimer.milliseconds() > 1000) {
                     beltOff();
                     state = AutoState.BALL2_KICK;
                     stateTimer.reset();
@@ -363,24 +366,27 @@ public class week3teleop extends LinearOpMode {
                 break;
 
             case BALL2_KICK:
+                beltOff();
                 runKicker();
                 if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
-                    state = AutoState.BALL3_FEED;
+                    // topKicker.setPosition(topKickerUpPosition-0.03);
+                    state = AutoState.PAUSE_AFTER_BALL2;
                     stateTimer.reset();
                 }
                 break;
             case PAUSE_AFTER_BALL2:
                 topKicker.setPosition(topKickerUpPosition-0.03);
-                beltOn(0.9);
-                intakeOn(1.0);
-                if (stateTimer.milliseconds() > 500) {
+                // beltOn(0.9);
+                intakeOn(0.9);
+                if (stateTimer.milliseconds() > 300) {
                     state = AutoState.BALL3_FEED;
                     stateTimer.reset();
                 }
                 break;
             case BALL3_FEED:
-                intakeOn(1.0); beltOn(1.0);
-                if (stateTimer.milliseconds() > 1300) {
+                intakeOn(1.0); beltOn(0.9);
+                shooterOn(shooterPower + 0.04); // slight increase to maintain speed
+                if (stateTimer.milliseconds() > 1000) {
                     beltOff(); intakeOff();
                     state = AutoState.BALL3_KICK;
                     stateTimer.reset();
@@ -388,14 +394,16 @@ public class week3teleop extends LinearOpMode {
                 break;
 
             case BALL3_KICK:
+                beltOff();
                 runKicker();
                 if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                    // topKicker.setPosition(topKickerUpPosition-0.03);
                     state = AutoState.BALL4_FEED;
                     stateTimer.reset();
                 }
                 break;
             case BALL4_FEED:
-                intakeOn(1.0); beltOn(0.8);
+                intakeOn(1.0); beltOn(0.9);
                 if (stateTimer.milliseconds() > 1000) {
                     beltOff(); intakeOff();
                     state = AutoState.BALL4_KICK;
@@ -403,6 +411,7 @@ public class week3teleop extends LinearOpMode {
                 }
                 break;
             case BALL4_KICK:
+                beltOff();
                 runKicker();
                 if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
                     shooterOff();
@@ -411,10 +420,11 @@ public class week3teleop extends LinearOpMode {
                 }
                 break;
             case STOP:
+                stateTimer.reset();
                 stopAll();
                 state = AutoState.DONE;
                 break;                    
-            case DONE:                  
+            case DONE:
                 break;
         }
     }
@@ -427,16 +437,13 @@ public class week3teleop extends LinearOpMode {
         double t = stateTimer.milliseconds();
         topKicker.setPosition(topKickerDownPosition);
         if (t >= 300) {
-            // beltOn(0.7);
             kicker.setPosition(BOTTOM_KICKER_UP);
         }
-        if (t >= KICK_BALL_TIME - 200) {
+        if (t >= (KICK_BALL_TIME - 200)) {
             kicker.setPosition(BOTTOM_KICKER_DOWN);
-            // beltOff();
         }
         if (t >= KICK_BALL_TIME) {
             topKicker.setPosition(topKickerUpPosition);
-            // beltOff();
         }
     }
     
@@ -446,6 +453,8 @@ public class week3teleop extends LinearOpMode {
         intakeOff();
         kicker.setPosition(BOTTOM_KICKER_DOWN);
         topKicker.setPosition(TOP_KICKER_UP);
+        topKickerDownPosition=TOP_KICKER_DOWN;
+        topKickerUpPosition=TOP_KICKER_UP;
     }
    
 }
