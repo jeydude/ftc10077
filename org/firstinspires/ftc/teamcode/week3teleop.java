@@ -318,110 +318,110 @@ public class week3teleop extends LinearOpMode {
             case START:
                 topKicker.setPosition(topKickerDownPosition);
                 shooterOn(shooterPower);
-                if (stateTimer.milliseconds() >  500) {
-                    state = AutoState.ADJUST_BALL1;
+                if (stateTimer.milliseconds() >=  500) {
                     stateTimer.reset();
+                    state = AutoState.ADJUST_BALL1;
                 }
                 break;
             case ADJUST_BALL1:
                 topKicker.setPosition(topKickerUpPosition-0.03);
-                if (stateTimer.milliseconds() > 300) {
-                    state = AutoState.BALL1_FEED;
+                if (stateTimer.milliseconds() >= 300) {
                     stateTimer.reset();
+                    state = AutoState.BALL1_FEED;
                 }
                 break;
             case BALL1_FEED:
                 beltOn(0.8);
-                if (stateTimer.milliseconds() > 400) {
+                if (stateTimer.milliseconds() >= 500) {
                     beltOff();
-                    state = AutoState.BALL1_KICK;
                     stateTimer.reset();
+                    state = AutoState.BALL1_KICK;
                 }
                 break;
             case BALL1_KICK:
                 beltOff();
                 runKicker();
-                if (stateTimer.milliseconds() > KICK_BALL_TIME) {
+                if (stateTimer.milliseconds() >= KICK_BALL_TIME+200) {
                     // topKicker.setPosition(topKickerUpPosition-0.03);
-                    state = AutoState.PAUSE_AFTER_BALL1;
                     stateTimer.reset();
+                    state = AutoState.PAUSE_AFTER_BALL1;
                 }
                 break;
             case PAUSE_AFTER_BALL1:
                 topKicker.setPosition(topKickerUpPosition-0.03);
                 // beltOn(0.9);
-                if (stateTimer.milliseconds() > 300) {
-                    state = AutoState.BALL2_FEED;
+                if (stateTimer.milliseconds() >= 300) {
                     stateTimer.reset();
+                    state = AutoState.BALL2_FEED;
                 }
                 break;
             case BALL2_FEED:
                 beltOn(0.9);
                 shooterOn(shooterPower + 0.02); // slight increase to maintain speed
-                if (stateTimer.milliseconds() > 1000) {
+                if (stateTimer.milliseconds() >= 1000) {
                     beltOff();
-                    state = AutoState.BALL2_KICK;
                     stateTimer.reset();
+                    state = AutoState.BALL2_KICK;
                 }
                 break;
 
             case BALL2_KICK:
                 beltOff();
                 runKicker();
-                if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                if (stateTimer.milliseconds() >= KICK_BALL_TIME+200) {
                     // topKicker.setPosition(topKickerUpPosition-0.03);
-                    state = AutoState.PAUSE_AFTER_BALL2;
                     stateTimer.reset();
+                    state = AutoState.PAUSE_AFTER_BALL2;
                 }
                 break;
             case PAUSE_AFTER_BALL2:
                 topKicker.setPosition(topKickerUpPosition-0.03);
                 // beltOn(0.9);
                 intakeOn(0.9);
-                if (stateTimer.milliseconds() > 300) {
-                    state = AutoState.BALL3_FEED;
+                if (stateTimer.milliseconds() >= 300) {
                     stateTimer.reset();
+                    state = AutoState.BALL3_FEED;
                 }
                 break;
             case BALL3_FEED:
                 intakeOn(1.0); beltOn(0.9);
                 shooterOn(shooterPower + 0.04); // slight increase to maintain speed
-                if (stateTimer.milliseconds() > 1000) {
+                if (stateTimer.milliseconds() >= 1000) {
                     beltOff(); intakeOff();
-                    state = AutoState.BALL3_KICK;
                     stateTimer.reset();
+                    state = AutoState.BALL3_KICK;
                 }
                 break;
 
             case BALL3_KICK:
                 beltOff();
                 runKicker();
-                if (stateTimer.milliseconds() > KICK_BALL_TIME+200) {
+                if (stateTimer.milliseconds() >= KICK_BALL_TIME+200) {
                     // topKicker.setPosition(topKickerUpPosition-0.03);
-                    state = AutoState.BALL4_FEED;
                     stateTimer.reset();
+                    state = AutoState.BALL4_FEED;
                 }
                 break;
             case BALL4_FEED:
                 intakeOn(1.0); beltOn(0.9);
-                if (stateTimer.milliseconds() > 1000) {
+                if (stateTimer.milliseconds() >= 1000) {
                     beltOff(); intakeOff();
-                    state = AutoState.BALL4_KICK;
                     stateTimer.reset();
+                    state = AutoState.BALL4_KICK;
                 }
                 break;
             case BALL4_KICK:
                 beltOff();
                 runKicker();
-                if (stateTimer.milliseconds() > KICK_BALL_TIME+100) {
+                if (stateTimer.milliseconds() >= KICK_BALL_TIME+100) {
                     shooterOff();
-                    state = AutoState.STOP;
                     stateTimer.reset();
+                    state = AutoState.STOP;
                 }
                 break;
             case STOP:
-                stateTimer.reset();
                 stopAll();
+                stateTimer.reset();
                 state = AutoState.DONE;
                 break;                    
             case DONE:
