@@ -11,8 +11,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name="Qualifier Teleop", group="Linear Opmode")
-public class week3teleop extends LinearOpMode {
+@TeleOp(name="TEST Teleop", group="Linear Opmode")
+public class teleoptest extends LinearOpMode {
 
     // Declare OpMode members.
     private DcMotor frontLeft, frontRight, backLeft , backRight;
