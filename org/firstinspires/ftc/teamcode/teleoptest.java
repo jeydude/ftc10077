@@ -349,7 +349,7 @@ public class teleoptest extends LinearOpMode {
             case BALL1_KICK:
                 beltOff();
                 runKicker(1);
-                if (stateTimer.milliseconds() >= BALL_KICK_TIME+200) {
+                if (stateTimer.milliseconds() >= BALL_KICK_TIME) {
                     stateTimer.reset();
                     state = AutoState.PAUSE_AFTER_BALL1;
                 }
@@ -375,7 +375,7 @@ public class teleoptest extends LinearOpMode {
             case BALL2_KICK:
                 beltOff();
                 runKicker(2);
-                if (stateTimer.milliseconds() >= BALL_KICK_TIME+200) {
+                if (stateTimer.milliseconds() >= BALL_KICK_TIME) {
                     stateTimer.reset();
                     state = AutoState.PAUSE_AFTER_BALL2;
                 }
@@ -390,7 +390,7 @@ public class teleoptest extends LinearOpMode {
             case BALL3_FEED:
                 intakeOn(1.0); beltOn(0.9);
                 shooterOn(shooterPower); // slight increase to maintain speed
-                if (stateTimer.milliseconds() >= BALL_FEED_TIME+400) {
+                if (stateTimer.milliseconds() >= BALL_FEED_TIME+200) {
                     beltOff(); intakeOff();
                     stateTimer.reset();
                     state = AutoState.BALL3_KICK;
@@ -422,7 +422,7 @@ public class teleoptest extends LinearOpMode {
             intakeOn(1.0);
         }
         kicker.setPosition(BOTTOM_KICKER_UP);
-        if (t >= 500) {
+        if (t >= BALL_KICK_TIME) {
             kicker.setPosition(BOTTOM_KICKER_DOWN);
         }
     }
