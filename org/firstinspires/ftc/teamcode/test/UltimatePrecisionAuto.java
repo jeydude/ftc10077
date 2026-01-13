@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -28,6 +29,7 @@ public class UltimatePrecisionAuto extends LinearOpMode {
 
     // Hardware
     private DcMotorEx fl, fr, bl, br, intake, belt, shooterLeft, shooterRight;
+    private Servo kicker;
     private IMU imu;
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
@@ -36,6 +38,9 @@ public class UltimatePrecisionAuto extends LinearOpMode {
     private static final double TICKS_PER_INCH = 39.35;
     private static final double NOMINAL_VOLTAGE = 13.0;
     private static final double SHOOTER_DISTANCE_GAIN = 0.0068; 
+
+    private static final double BOTTOM_KICKER_DOWN = 0.75;
+    private static final double BOTTOM_KICKER_UP = 0.40;
     
     // PID Drive
     private double Kp = 0.045, Ki = 0.0001, Kd = 0.015;
@@ -73,7 +78,8 @@ public class UltimatePrecisionAuto extends LinearOpMode {
             driveWithPID(15, 2.0); 
             sleep(800);
             intake.setPower(0);
-            
+            belt.setPower(0);
+
             // 4. Return to Shooting Position
             driveWithPID(-15, 2.0); 
             imuTurn(0, 2.0);        
@@ -139,8 +145,9 @@ public class UltimatePrecisionAuto extends LinearOpMode {
         shooterLeft.setPower(finalPower);
         shooterRight.setPower(finalPower);
         sleep(1000); 
-        belt.setPower(0.8); 
+        kicker.setPosition(BOTTOM_KICKER_UP);
         sleep((long)(duration * 1000));
+        kicker.setPosition(BOTTOM_KICKER_DOWN);
         stopShooter();
     }
 
@@ -185,6 +192,7 @@ public class UltimatePrecisionAuto extends LinearOpMode {
         shooterRight = hardwareMap.get(DcMotorEx.class, "rightshooter");
         intake = hardwareMap.get(DcMotorEx.class, "frontintake");
         belt = hardwareMap.get(DcMotorEx.class, "belt");
+        kicker = hardwareMap.get(Servo.class, "ballkicker");
 
         fr.setDirection(DcMotor.Direction.REVERSE);
         br.setDirection(DcMotor.Direction.REVERSE);
