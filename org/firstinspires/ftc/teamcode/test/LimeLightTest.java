@@ -44,19 +44,22 @@ public class LimeLightTest extends LinearOpMode {
         initializeHardware(hardwareMap);
         
         waitForStart();
+        limelight.start()
 
         while (opModeIsActive()) {
 
             YawPitchRollAngles angles = imu.getRobotYawPitchRollAngles();
-            limelight.updateRobotOrientationOnRobot(angles.getYaw());
+            limelight.updateRobotOrientation(angles.getYaw());
             LLResult ll = limelight.getLatestResult();
             if (ll != null && ll.isValid()) {
                 Pose3D botPose = ll.getBotpose_MT2();
                 if (botPose != null) {
-                    telemetry.addData("X Position", ll.getTx()); // millimeters
-                    telemetry.addData("Y Position", ll.getTy()); // millimeters
-                    telemetry.addData("Target Area", ll.getTa()); // millimeters
-                    telemetry.addData("Botpose", botPose.toString());
+                    telemetry.addData("X Position", ll.getTx()); // millimeters - Target horizontal offset
+                    telemetry.addData("Y Position", ll.getTy()); // millimeters - Target vertical offset
+                    telemetry.addData("Target Area", ll.getTa()); // millimeters    - Target area
+                    telemetry.addData("Botpose", botPose.toString());   // Robot position and orientation
+                    telemetry.addData("Limelight X", botPose.getPosition().getX());
+                    telemetry.addData("Limelight Y", botPose.getPosition().getY());
                     telemetry.addData("IMU Heading", getIMUHeading());
                     telemetry.addData("Limelight Yaw", botPose.getOrientation().getYaw());
                     telemetry.update();
