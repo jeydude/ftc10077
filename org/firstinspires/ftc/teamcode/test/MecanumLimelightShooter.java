@@ -9,7 +9,7 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 
-@TeleOp(name = "Mecanum + Limelight Shooter (goBILDA)", group = "Drive")
+@TeleOp(name = "Mecanum + Limelight Shooter (Geared)", group = "Drive")
 public class MecanumLimelightShooter extends LinearOpMode {
 
     // ================= MOTORS =================
@@ -23,20 +23,21 @@ public class MecanumLimelightShooter extends LinearOpMode {
     // ================= CONSTANTS =================
 
     // Encoder
-    static final double TICKS_PER_REV = 537.7;
+    static final double MOTOR_TICKS_PER_REV = 537.7;
 
-    // Drive motors
-    static final double DRIVE_MAX_RPM = 312.0;
+    // Shooter gearing
+    static final double SHOOTER_GEAR_RATIO = 2.0; // 40T / 20T
 
-    // Shooter motor
-    static final double SHOOTER_MAX_RPM = 1620.0;
+    // Shooter limits
+    static final double SHOOTER_MOTOR_MAX_RPM = 1620.0;
+    static final double SHOOTER_WHEEL_MAX_RPM = SHOOTER_MOTOR_MAX_RPM / SHOOTER_GEAR_RATIO;
 
-    // Shooter physics (TUNE THESE)
+    // Shooter physics (baseline)
     static final double SHOOTER_ANGLE_DEG = 40.0;
     static final double WHEEL_RADIUS = 0.05; // meters
 
-    // AprilTag target location (FIELD COORDINATES)
-    static final double TARGET_X = 1.35; // meters
+    // AprilTag target location (meters)
+    static final double TARGET_X = 1.35;
     static final double TARGET_Y = 3.90;
 
     @Override
@@ -77,7 +78,7 @@ public class MecanumLimelightShooter extends LinearOpMode {
         limelight = NetworkTableInstance.getDefault().getTable("limelight");
         botpose = limelight.getEntry("botpose");
 
-        telemetry.addLine("Ready - goBILDA drive + shooter");
+        telemetry.addLine("Ready - Shooter 2:1 Geared");
         telemetry.update();
 
         waitForStart();
@@ -114,8 +115,8 @@ public class MecanumLimelightShooter extends LinearOpMode {
             backRight.setPower(br);
 
             // ==================================================
-            // LIMELIGHT SHOOTER CONTROL
-            // Hold RIGHT TRIGGER to spin shooter
+            // LIMELIGHT SHOOTER
+            // Hold RIGHT TRIGGER to spin up
             // ==================================================
             double[] pose = botpose.getDoubleArray(new double[6]);
 
@@ -124,29 +125,36 @@ public class MecanumLimelightShooter extends LinearOpMode {
                 double robotX = pose[0];
                 double robotY = pose[1];
 
-                double dx = TARGET_X - robotX;
-                double dy = TARGET_Y - robotY;
-                double distance = Math.hypot(dx, dy);
+                double distance = Math.hypot(
+                        TARGET_X - robotX,
+                        TARGET_Y - robotY
+                );
 
-                // Projectile math (baseline)
+                // Projectile baseline
                 double angleRad = Math.toRadians(SHOOTER_ANGLE_DEG);
                 double exitVelocity = Math.sqrt(
                         (distance * 9.81) / Math.sin(2 * angleRad)
                 );
 
-                // Convert to RPM
-                double rpm = (exitVelocity / (2 * Math.PI * WHEEL_RADIUS)) * 60.0;
+                // Convert to WHEEL RPM
+                double wheelRPM =
+                        (exitVelocity / (2 * Math.PI * WHEEL_RADIUS)) * 60.0;
 
-                // Clamp to shooter capability
-                rpm = Math.min(rpm, SHOOTER_MAX_RPM);
+                // Clamp to physical limit
+                wheelRPM = Math.min(wheelRPM, SHOOTER_WHEEL_MAX_RPM);
 
-                // Convert RPM -> ticks/sec
-                double ticksPerSecond = rpm * TICKS_PER_REV / 60.0;
+                // Convert wheel RPM -> motor RPM
+                double motorRPM = wheelRPM * SHOOTER_GEAR_RATIO;
+
+                // Convert motor RPM -> ticks/sec
+                double ticksPerSecond =
+                        motorRPM * MOTOR_TICKS_PER_REV / 60.0;
 
                 shooter.setVelocity(ticksPerSecond);
 
                 telemetry.addData("Distance (m)", "%.2f", distance);
-                telemetry.addData("Shooter RPM", "%.0f", rpm);
+                telemetry.addData("Wheel RPM", "%.0f", wheelRPM);
+                telemetry.addData("Motor RPM", "%.0f", motorRPM);
 
             } else {
                 shooter.setVelocity(0);
