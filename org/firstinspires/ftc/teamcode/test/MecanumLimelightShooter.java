@@ -22,8 +22,8 @@ public class MecanumLimelightShooter extends LinearOpMode {
 
     // ================= CONSTANTS =================
 
-    // Encoder
-    static final double MOTOR_TICKS_PER_REV = 537.7;
+    // Shooter Encoder
+    static final double MOTOR_TICKS_PER_REV = 103.8;
 
     // Shooter gearing
     static final double SHOOTER_GEAR_RATIO = 2.0; // 40T / 20T
@@ -131,20 +131,17 @@ public class MecanumLimelightShooter extends LinearOpMode {
                 );
 
                 // Projectile baseline
+                // Projectile baseline (replace with empirical tuning later)
                 double angleRad = Math.toRadians(SHOOTER_ANGLE_DEG);
-                double exitVelocity = Math.sqrt(
-                        (distance * 9.81) / Math.sin(2 * angleRad)
-                );
-
-                // Convert to WHEEL RPM
-                double wheelRPM =
-                        (exitVelocity / (2 * Math.PI * WHEEL_RADIUS)) * 60.0;
+                targetWheelRPM =
+                        (Math.sqrt((distance * 9.81) / Math.sin(2 * angleRad))
+                                / (2 * Math.PI * WHEEL_RADIUS)) * 60.0;
 
                 // Clamp to physical limit
-                wheelRPM = Math.min(wheelRPM, SHOOTER_WHEEL_MAX_RPM);
+                targetWheelRPM = Math.min(targetWheelRPM, SHOOTER_WHEEL_MAX_RPM);
 
                 // Convert wheel RPM -> motor RPM
-                double motorRPM = wheelRPM * SHOOTER_GEAR_RATIO;
+                double motorRPM = targetWheelRPM * SHOOTER_GEAR_RATIO;
 
                 // Convert motor RPM -> ticks/sec
                 double ticksPerSecond =
@@ -153,9 +150,8 @@ public class MecanumLimelightShooter extends LinearOpMode {
                 shooter.setVelocity(ticksPerSecond);
 
                 telemetry.addData("Distance (m)", "%.2f", distance);
-                telemetry.addData("Wheel RPM", "%.0f", wheelRPM);
+                telemetry.addData("Target Wheel RPM", "%.0f", targetWheelRPM);
                 telemetry.addData("Motor RPM", "%.0f", motorRPM);
-
             } else {
                 shooter.setVelocity(0);
             }
